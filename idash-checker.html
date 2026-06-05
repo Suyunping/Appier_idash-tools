@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iDASH 素材檢核工具</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0d0d;--s1:#141414;--s2:#1c1c1c;--s3:#242424;
+  --border:#252525;--border2:#333;
+  --text:#f0f0f0;--muted:#5a5a5a;--muted2:#888;
+  --green:#a8f04a;--blue:#5eb8ff;--amber:#ffb830;--red:#ff5c5c;--purple:#c084fc;
+  --mono:'DM Mono',monospace;--sans:'Syne',sans-serif;--r:6px;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;font-size:14px}
+
+.topbar{
+  position:sticky;top:0;z-index:200;
+  background:rgba(13,13,13,0.96);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  padding:0.6rem 1.5rem;
+  display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;
+}
+.topbar h1{font-size:1rem;font-weight:700;color:var(--green);letter-spacing:-0.01em;white-space:nowrap}
+.topbar .sub{font-family:var(--mono);font-size:0.62rem;color:var(--muted);white-space:nowrap}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.sg{display:flex;align-items:center;gap:0.5rem}
+.sg label{font-family:var(--mono);font-size:0.65rem;color:var(--muted);white-space:nowrap}
+.sg input,.sg select{
+  background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);
+  color:var(--text);font-family:var(--mono);font-size:0.72rem;
+  padding:0.28rem 0.5rem;outline:none;
+}
+.sg input[type=number]{width:72px}
+.sg select{width:140px}
+.sg input:focus,.sg select:focus{border-color:var(--green)}
+.sg input[type=checkbox]{width:14px;height:14px;accent-color:var(--green);cursor:pointer}
+
+.main{max-width:1200px;margin:0 auto;padding:1.25rem 1.5rem 5rem}
+
+#drop-zone{
+  border:1.5px dashed var(--border2);border-radius:10px;
+  padding:2.5rem 1rem;text-align:center;cursor:pointer;
+  transition:all 0.15s;margin-bottom:1.25rem;
+}
+#drop-zone:hover,#drop-zone.over{border-color:var(--green);background:rgba(168,240,74,0.03)}
+#drop-zone .dz-icon{font-size:2rem;opacity:0.3;margin-bottom:0.6rem}
+#drop-zone .dz-t{font-size:0.88rem;font-weight:600;margin-bottom:0.3rem}
+#drop-zone .dz-s{font-size:0.72rem;color:var(--muted);font-family:var(--mono)}
+
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:0.6rem;margin-bottom:1.25rem}
+.sc{
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--r);
+  padding:0.7rem 1rem;cursor:pointer;transition:border-color 0.12s;
+}
+.sc:hover{border-color:var(--border2)}
+.sc.af{border-color:currentColor!important}
+.sc-n{font-size:1.5rem;font-weight:700;line-height:1;margin-bottom:0.2rem}
+.sc-l{font-family:var(--mono);font-size:0.6rem;color:var(--muted)}
+.c-ok{color:var(--green)}.c-comp{color:var(--blue)}.c-resize{color:var(--amber)}.c-am{color:var(--red)}
+
+.table-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.tbar{
+  display:flex;align-items:center;gap:0.6rem;padding:0.65rem 1rem;
+  border-bottom:1px solid var(--border);background:var(--s2);flex-wrap:wrap;
+}
+.tbar-title{font-family:var(--mono);font-size:0.68rem;color:var(--muted2);margin-right:auto}
+.tbtn{
+  background:none;border:1px solid var(--border2);border-radius:var(--r);
+  color:var(--muted);font-family:var(--mono);font-size:0.62rem;
+  padding:0.25rem 0.55rem;cursor:pointer;transition:all 0.12s;white-space:nowrap;
+}
+.tbtn:hover{color:var(--text);border-color:var(--border2)}
+.tbtn.on{border-color:var(--green);color:var(--green)}
+
+/* 9 columns: check | thumb | name | original dims | original size | status | target | output info | action */
+.row{
+  display:grid;
+  grid-template-columns:20px 44px minmax(0,1.6fr) 90px 68px 120px 130px 110px 76px;
+  gap:0.5rem;align-items:center;
+  padding:0.55rem 1rem;
+  border-bottom:1px solid var(--border);
+  transition:background 0.1s;
+}
+.row:last-child{border-bottom:none}
+.row:hover{background:var(--s2)}
+.row.hidden{display:none!important}
+.row.rep{opacity:0.6}
+
+.col-hd{
+  display:grid;
+  grid-template-columns:20px 44px minmax(0,1.6fr) 90px 68px 120px 130px 110px 76px;
+  gap:0.5rem;align-items:center;
+  padding:0.4rem 1rem;
+  border-bottom:1px solid var(--border2);
+  background:var(--s3);
+}
+.col-hd span{font-family:var(--mono);font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em}
+
+.row input[type=checkbox]{accent-color:var(--green);width:13px;height:13px;cursor:pointer}
+.thumb{width:40px;height:40px;object-fit:contain;border-radius:4px;background:var(--s3);display:block}
+.rname{font-family:var(--mono);font-size:0.68rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted2)}
+.rdim{font-family:var(--mono);font-size:0.68rem;color:var(--muted2)}
+.rsize{font-family:var(--mono);font-size:0.68rem;color:var(--muted2)}
+
+.badge{
+  display:inline-flex;align-items:center;gap:3px;
+  font-family:var(--mono);font-size:0.6rem;font-weight:500;
+  padding:0.22rem 0.5rem;border-radius:4px;white-space:nowrap;
+}
+.b-ok{background:rgba(168,240,74,0.1);color:var(--green)}
+.b-ok2{background:rgba(168,240,74,0.07);color:#7bc934}
+.b-comp{background:rgba(94,184,255,0.1);color:var(--blue)}
+.b-resize{background:rgba(255,184,48,0.1);color:var(--amber)}
+.b-special{background:rgba(192,132,252,0.1);color:var(--purple)}
+.b-report{background:rgba(255,92,92,0.1);color:var(--red)}
+
+.tgt select{
+  background:var(--s3);border:1px solid var(--border2);border-radius:var(--r);
+  color:var(--text);font-family:var(--mono);font-size:0.62rem;
+  padding:0.22rem 0.35rem;width:100%;outline:none;cursor:pointer;
+}
+.tgt select:focus{border-color:var(--amber)}
+.tgt .na{font-family:var(--mono);font-size:0.62rem;color:var(--muted)}
+
+/* Output info cell */
+.out-info{font-family:var(--mono);font-size:0.62rem;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.out-info .out-size{color:var(--muted2)}
+.out-info .out-size.ok{color:var(--green)}
+.out-info .out-size.warn{color:var(--amber)}
+.out-info .out-dims{color:var(--muted)}
+
+.act-btn{
+  background:none;border:1px solid var(--border2);border-radius:var(--r);
+  color:var(--muted2);font-family:var(--mono);font-size:0.6rem;
+  padding:0.28rem 0.5rem;cursor:pointer;transition:all 0.12s;white-space:nowrap;width:100%;
+}
+.act-btn:hover:not(:disabled){border-color:var(--green);color:var(--green)}
+.act-btn.done{border-color:var(--green);color:var(--green);background:rgba(168,240,74,0.08)}
+.act-btn.err{border-color:var(--red);color:var(--red)}
+.act-btn:disabled{opacity:0.35;cursor:not-allowed}
+
+.empty{padding:3.5rem;text-align:center;color:var(--muted);font-family:var(--mono);font-size:0.75rem}
+
+.bbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:rgba(13,13,13,0.97);backdrop-filter:blur(10px);
+  border-top:1px solid var(--border);
+  padding:0.7rem 1.5rem;
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+}
+.bbar .sel-info{font-family:var(--mono);font-size:0.72rem;color:var(--muted);min-width:80px}
+.b-main{
+  background:var(--green);color:#0a0a0a;
+  border:none;border-radius:var(--r);
+  font-family:var(--sans);font-size:0.82rem;font-weight:700;
+  padding:0.5rem 1.1rem;cursor:pointer;transition:opacity 0.12s;
+}
+.b-main:hover{opacity:0.88}
+.b-main:disabled{opacity:0.3;cursor:not-allowed}
+.b-sec{
+  background:none;border:1px solid var(--border2);border-radius:var(--r);
+  color:var(--muted2);font-family:var(--mono);font-size:0.72rem;
+  padding:0.5rem 0.9rem;cursor:pointer;transition:all 0.12s;
+}
+.b-sec:hover{border-color:var(--text);color:var(--text)}
+.prog-wrap{flex:1;min-width:120px;display:none}
+.prog-track{background:var(--s3);border-radius:3px;height:4px;overflow:hidden}
+.prog-bar{height:100%;background:var(--green);width:0;transition:width 0.2s}
+.prog-label{font-family:var(--mono);font-size:0.62rem;color:var(--muted);margin-top:0.3rem}
+
+.report-list{
+  background:rgba(255,92,92,0.05);border:1px solid rgba(255,92,92,0.15);
+  border-radius:var(--r);padding:0.75rem 1rem;margin-top:1rem;display:none;
+}
+.report-list h3{font-family:var(--mono);font-size:0.68rem;color:var(--red);margin-bottom:0.5rem}
+.report-list ul{list-style:none;display:flex;flex-direction:column;gap:3px}
+.report-list li{font-family:var(--mono);font-size:0.65rem;color:var(--muted2)}
+.copy-rep-btn{
+  background:none;border:1px solid rgba(255,92,92,0.3);border-radius:var(--r);
+  color:var(--red);font-family:var(--mono);font-size:0.62rem;
+  padding:0.25rem 0.6rem;cursor:pointer;margin-top:0.6rem;transition:all 0.12s;
+}
+.copy-rep-btn:hover{background:rgba(255,92,92,0.1)}
+
+/* PNG warning banner */
+.png-note{
+  background:rgba(255,184,48,0.06);border:1px solid rgba(255,184,48,0.2);
+  border-radius:var(--r);padding:0.6rem 1rem;margin-bottom:1rem;
+  font-family:var(--mono);font-size:0.68rem;color:var(--amber);
+  display:none;align-items:center;gap:0.75rem;
+}
+.png-note span{flex:1}
+
+@media(max-width:900px){
+  .row,.col-hd{grid-template-columns:20px 40px 1fr 80px 60px 100px 110px 90px 64px}
+  .summary{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>iDASH 素材檢核</h1>
+  <span class="sub">Banner · Image (Support 2x)</span>
+  <div class="topbar-right">
+    <div class="sg">
+      <label>檔案大小上限</label>
+      <input type="number" id="max-kb" value="900" min="10" max="10000">
+      <span style="font-family:var(--mono);font-size:0.65rem;color:var(--muted)">KB</span>
+    </div>
+    <div class="sg">
+      <label>PNG 處理後格式</label>
+      <select id="png-over">
+        <option value="jpeg">轉 JPEG（推薦）</option>
+        <option value="webp">轉 WebP</option>
+      </select>
+    </div>
+    <div class="sg">
+      <label>其他格式輸出</label>
+      <select id="out-fmt">
+        <option value="same">保持原格式</option>
+        <option value="image/jpeg">強制 JPEG</option>
+        <option value="image/webp">強制 WebP</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div id="drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)" onclick="document.getElementById('fi').click()">
+    <div class="dz-icon">⬆</div>
+    <div class="dz-t">點擊或拖曳圖片到這裡</div>
+    <div class="dz-s">支援 JPG、PNG、WebP · 可一次上傳多張</div>
+    <input type="file" id="fi" multiple accept="image/*" style="display:none" onchange="addFiles(this.files)">
+  </div>
+
+  <div class="png-note" id="png-note">
+    <span>⚠ 偵測到 PNG 圖片需處理。PNG 無法直接壓縮，將自動轉成「<span id="png-note-action"></span>」後壓縮輸出（右上角可切換格式）。</span>
+  </div>
+
+  <div class="summary">
+    <div class="sc c-ok" id="s-ok" onclick="setFilter('ok')">
+      <div class="sc-n" id="n-ok">0</div><div class="sc-l">✅ 可直接上傳</div>
+    </div>
+    <div class="sc c-comp" id="s-comp" onclick="setFilter('comp')">
+      <div class="sc-n" id="n-comp">0</div><div class="sc-l">🔵 需壓縮</div>
+    </div>
+    <div class="sc c-resize" id="s-resize" onclick="setFilter('resize')">
+      <div class="sc-n" id="n-resize">0</div><div class="sc-l">⚠️ 需 Resize</div>
+    </div>
+    <div class="sc c-am" id="s-am" onclick="setFilter('report')">
+      <div class="sc-n" id="n-am">0</div><div class="sc-l">❌ 回報 AM</div>
+    </div>
+    <div class="sc" id="s-over" style="display:none;color:var(--red);grid-column:1/-1;background:rgba(255,92,92,0.07);border-color:rgba(255,92,92,0.3)">
+      <div class="sc-n" id="n-over">0</div><div class="sc-l">⛔ 壓縮後仍超限 — 已排除在 ZIP 外，建議手動壓縮或回報 AM</div>
+    </div>
+  </div>
+
+  <div class="table-wrap" id="table-wrap">
+    <div class="tbar">
+      <span class="tbar-title" id="tbar-count">尚未上傳圖片</span>
+      <button class="tbtn" onclick="toggleSelectAll()">全選可處理</button>
+      <button class="tbtn on" id="f-all" onclick="setFilter('all')">全部</button>
+      <button class="tbtn" id="f-act" onclick="setFilter('action')">需處理</button>
+      <button class="tbtn" id="f-rep" onclick="setFilter('report')">回報 AM</button>
+      <button class="tbtn" onclick="clearAll()" style="color:var(--red)">清除全部</button>
+    </div>
+    <div class="col-hd">
+      <span></span><span></span>
+      <span>檔名</span>
+      <span>原始尺寸</span>
+      <span>原始大小</span>
+      <span>狀態</span>
+      <span>目標尺寸</span>
+      <span>輸出結果</span>
+      <span>動作</span>
+    </div>
+    <div id="rows"><div class="empty">上傳圖片後會顯示分析結果</div></div>
+  </div>
+
+  <div class="report-list" id="report-box">
+    <h3>⚠ 建議回報 AM 的素材（尺寸比例不符，Resize 將變形）</h3>
+    <ul id="report-ul"></ul>
+    <button class="copy-rep-btn" onclick="copyReport()">複製清單</button>
+  </div>
+</div>
+
+<div class="bbar">
+  <span class="sel-info" id="sel-info">已選 0 張</span>
+  <button class="b-main" id="batch-btn" onclick="processBatch()" disabled>批量處理並下載 ZIP</button>
+  <button class="b-sec" onclick="clearProcessed()">清除已完成</button>
+  <div class="prog-wrap" id="prog-wrap">
+    <div class="prog-track"><div class="prog-bar" id="prog-bar"></div></div>
+    <div class="prog-label" id="prog-label"></div>
+  </div>
+</div>
+
+<script>
+const SIZES = [
+  [120,600],[160,600],[200,200],[240,320],[250,250],
+  [300,50],[300,100],[300,150],[300,250],[300,600],
+  [320,50],[320,100],[320,160],[320,250],[320,480],[320,568],
+  [336,280],[468,60],[480,320],[568,320],
+  [728,90],[768,1024],[970,90],[970,250],
+  [1024,768],[1200,627],[1280,720],[720,1280]
+];
+const SPECIAL = { '1200x628': [1200,627] };
+
+let items = [], nextId = 0, currentFilter = 'all';
+
+// ── Drag & Drop ────────────────────────────────────────
+function onDragOver(e){ e.preventDefault(); document.getElementById('drop-zone').classList.add('over'); }
+function onDragLeave(){ document.getElementById('drop-zone').classList.remove('over'); }
+function onDrop(e){ e.preventDefault(); document.getElementById('drop-zone').classList.remove('over'); addFiles(e.dataTransfer.files); }
+
+// ── Add files ──────────────────────────────────────────
+function addFiles(files) {
+  const arr = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if (!arr.length) return;
+  let loaded = 0;
+  arr.forEach(f => {
+    const id = nextId++;
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => {
+      const a = analyze(img.width, img.height, f.size/1024, f.type, f);
+      items.push({ id, file:f, name:f.name, w:img.width, h:img.height, kb:f.size/1024, mime:f.type, thumbUrl:url, ...a, processState:'idle', blob:null, outKB:null, outW:null, outH:null, checked: a.status!=='report' });
+      if (++loaded === arr.length) { document.getElementById('fi').value=''; render(); }
+    };
+    img.src = url;
+  });
+}
+
+// ── Analysis ───────────────────────────────────────────
+function analyze(w, h, kb, mime, f) {
+  const maxKB = parseFloat(document.getElementById('max-kb').value) || 900;
+  const maxBytes = maxKB * 1000; // decimal KB matches iDASH
+  const specialKey = `${w}x${h}`;
+  if (SPECIAL[specialKey]) {
+    const t = SPECIAL[specialKey];
+    return { status:'special', targets:[t], selectedTarget:t, badge:'b-special', badgeText:'特殊 Resize', msg:`→ ${t[0]}×${t[1]}（iDASH 規定）` };
+  }
+  const exact = SIZES.find(([sw,sh]) => sw===w && sh===h);
+  if (exact) {
+    if (f.size < maxBytes) return { status:'ok', targets:[], selectedTarget:null, badge:'b-ok', badgeText:'✅ 可上傳', msg:'尺寸符合，大小OK' };
+    return { status:'comp', targets:[[w,h]], selectedTarget:[w,h], badge:'b-comp', badgeText:'🔵 需壓縮', msg:`${kb.toFixed(0)}KB 超過 ${maxKB}KB`, isPng: mime==='image/png' };
+  }
+  const twoX = SIZES.find(([sw,sh]) => sw*2===w && sh*2===h);
+  if (twoX) {
+    if (f.size < maxBytes) return { status:'ok', targets:[], selectedTarget:null, badge:'b-ok2', badgeText:'✅ 可上傳 (2x)', msg:`對應 ${twoX[0]}×${twoX[1]}` };
+    return { status:'comp', targets:[[w,h]], selectedTarget:[w,h], badge:'b-comp', badgeText:'🔵 需壓縮 (2x)', msg:`${kb.toFixed(0)}KB 超過 ${maxKB}KB`, isPng: mime==='image/png' };
+  }
+  const eps = 0.015;
+  const arMatches = SIZES.filter(([sw,sh]) => Math.abs(w/h - sw/sh) < eps);
+  if (arMatches.length > 0) {
+    arMatches.sort((a,b) => Math.abs(a[0]*a[1]-w*h)-Math.abs(b[0]*b[1]-w*h));
+    return { status:'resize', targets:arMatches, selectedTarget:arMatches[0], badge:'b-resize', badgeText:'⚠️ 需 Resize', msg:`${arMatches.length} 個可選尺寸` };
+  }
+  return { status:'report', targets:[], selectedTarget:null, badge:'b-report', badgeText:'❌ 回報 AM', msg:`比例 ${(w/h).toFixed(2)} 無對應尺寸` };
+}
+
+// Re-analyze when maxKB changes
+document.getElementById('max-kb').addEventListener('change', reAnalyzeAll);
+function reAnalyzeAll() {
+  items = items.map(it => {
+    const a = analyze(it.w, it.h, it.kb, it.mime, it.file);
+    const wasProcessed = it.processState === 'done';
+    return { ...it, ...a, processState: wasProcessed ? 'done' : 'idle', blob: wasProcessed ? it.blob : null, outKB: wasProcessed ? it.outKB : null, outW: wasProcessed ? it.outW : null, outH: wasProcessed ? it.outH : null, checked: a.status!=='report' };
+  });
+  render();
+}
+
+// ── Render ─────────────────────────────────────────────
+function render() { updateSummary(); renderRows(); updateBatchBar(); renderReportBox(); checkPngWarning(); }
+
+function checkPngWarning() {
+  const pngOver = items.filter(i => i.isPng && i.status === 'comp');
+  const note = document.getElementById('png-note');
+  if (pngOver.length) {
+    note.style.display = 'flex';
+    const mode = document.getElementById('png-over').value;
+    const modeText = mode==='jpeg'?'自動轉 JPEG 壓縮': mode==='webp'?'自動轉 WebP 壓縮':'不處理（保持原檔）';
+    document.getElementById('png-note-action').textContent = modeText;
+  } else {
+    note.style.display = 'none';
+  }
+}
+document.getElementById('png-over').addEventListener('change', checkPngWarning);
+
+function updateSummary() {
+  document.getElementById('n-ok').textContent   = items.filter(i=>i.status==='ok').length;
+  document.getElementById('n-comp').textContent = items.filter(i=>i.status==='comp').length;
+  document.getElementById('n-resize').textContent = items.filter(i=>i.status==='resize'||i.status==='special').length;
+  document.getElementById('n-am').textContent   = items.filter(i=>i.status==='report').length;
+  const _overCnt = items.filter(i=>i.processState==='over-limit').length;
+  const _overEl = document.getElementById('n-over');
+  const _overCard = document.getElementById('s-over');
+  if (_overEl) _overEl.textContent = _overCnt;
+  if (_overCard) _overCard.style.display = _overCnt > 0 ? 'block' : 'none';
+  document.getElementById('tbar-count').textContent = items.length ? `共 ${items.length} 張` : '尚未上傳圖片';
+}
+
+function rowVisible(it) {
+  if (currentFilter==='all') return true;
+  if (currentFilter==='ok') return it.status==='ok';
+  if (currentFilter==='comp') return it.status==='comp';
+  if (currentFilter==='resize') return it.status==='resize'||it.status==='special';
+  if (currentFilter==='report') return it.status==='report';
+  if (currentFilter==='action') return it.status!=='ok'&&it.status!=='report';
+  return true;
+}
+
+function renderRows() {
+  const c = document.getElementById('rows');
+  if (!items.length) { c.innerHTML='<div class="empty">上傳圖片後會顯示分析結果</div>'; return; }
+  c.innerHTML = items.map(it => buildRow(it)).join('');
+}
+
+function buildRow(it) {
+  const vis = rowVisible(it) ? '' : ' hidden';
+  const repClass = it.status==='report' ? ' rep' : '';
+  const chkDisabled = it.status==='report' ? 'disabled' : '';
+  const chkChecked = it.checked ? 'checked' : '';
+  const kbStr = fmt_kb(it.kb);
+
+  // Target dropdown
+  let tgtHtml = '<span class="na">—</span>';
+  if (it.targets && it.targets.length>0 && it.status!=='ok') {
+    const opts = it.targets.map(([tw,th]) => {
+      const sel = it.selectedTarget&&it.selectedTarget[0]===tw&&it.selectedTarget[1]===th ? 'selected' : '';
+      return `<option value="${tw}x${th}" ${sel}>${tw}×${th}</option>`;
+    }).join('');
+    tgtHtml = `<select onchange="setTarget(${it.id},this.value)">${opts}</select>`;
+  }
+
+  // Output info
+  let outHtml = '<span class="na" style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">—</span>';
+  if ((it.processState==='done'||it.processState==='over-limit') && it.outKB!=null) {
+    const maxKB = parseFloat(document.getElementById('max-kb').value)||900;
+    const sizeClass = it.outKB<=maxKB ? 'ok' : 'warn';
+    const sizeIcon = it.outKB<=maxKB ? '✓' : '⚠';
+    outHtml = `<div class="out-info"><span class="out-size ${sizeClass}">${sizeIcon} ${fmt_kb(it.outKB)}</span><span class="out-dims">${it.outW}×${it.outH}</span></div>`;
+  } else if (it.processState==='processing') {
+    outHtml = `<span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">처리중…</span>`;
+  }
+
+  // Action button
+  let actHtml;
+  if (it.status==='report') {
+    actHtml = `<button class="act-btn" disabled>回報 AM</button>`;
+  } else if (it.processState==='over-limit') {
+    actHtml = `<button class="act-btn err" style="font-size:0.55rem" disabled title="壓縮後仍超限，已排除在ZIP外">⛔ 超限</button>`;
+  } else if (it.processState==='done') {
+    actHtml = `<button class="act-btn done" onclick="downloadOne(${it.id})">↓ 下載</button>`;
+  } else if (it.processState==='processing') {
+    actHtml = `<button class="act-btn" disabled>處理中…</button>`;
+  } else if (it.status==='ok') {
+    actHtml = `<button class="act-btn done" onclick="downloadOriginal(${it.id})">↓ 原檔</button>`;
+  } else {
+    actHtml = `<button class="act-btn" onclick="processOne(${it.id})">處理</button>`;
+  }
+
+  return `<div class="row${vis}${repClass}" id="row-${it.id}">
+    <div><input type="checkbox" ${chkChecked} ${chkDisabled} onchange="setCheck(${it.id},this.checked)"></div>
+    <div><img class="thumb" src="${it.thumbUrl}" alt=""></div>
+    <div class="rname" title="${it.name}">${it.name}</div>
+    <div class="rdim">${it.w}×${it.h}</div>
+    <div class="rsize">${kbStr}</div>
+    <div><span class="badge ${it.badge}">${it.badgeText}</span></div>
+    <div class="tgt">${tgtHtml}</div>
+    <div id="out-${it.id}">${outHtml}</div>
+    <div id="act-${it.id}">${actHtml}</div>
+  </div>`;
+}
+
+function fmt_kb(kb) {
+  if (kb < 1) return `${(kb*1024).toFixed(0)}B`;
+  if (kb >= 1024) return `${(kb/1024).toFixed(1)}MB`;
+  return `${kb.toFixed(0)}KB`;
+}
+
+function renderReportBox() {
+  const reps = items.filter(i=>i.status==='report');
+  const box = document.getElementById('report-box');
+  if (!reps.length) { box.style.display='none'; return; }
+  box.style.display='block';
+  document.getElementById('report-ul').innerHTML = reps.map(i =>
+    `<li>• ${i.name}（${i.w}×${i.h}，${fmt_kb(i.kb)}）— 比例 ${(i.w/i.h).toFixed(2)}，無對應允許尺寸</li>`
+  ).join('');
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  ['f-all','f-act','f-rep'].forEach(x => document.getElementById(x)?.classList.remove('on'));
+  ['s-ok','s-comp','s-resize','s-am'].forEach(x => document.getElementById(x)?.classList.remove('af'));
+  if (f==='all')    document.getElementById('f-all').classList.add('on');
+  else if (f==='action') document.getElementById('f-act').classList.add('on');
+  else if (f==='report') { document.getElementById('f-rep').classList.add('on'); document.getElementById('s-am').classList.add('af'); }
+  else if (f==='ok')     document.getElementById('s-ok').classList.add('af');
+  else if (f==='comp')   document.getElementById('s-comp').classList.add('af');
+  else if (f==='resize') document.getElementById('s-resize').classList.add('af');
+  renderRows();
+}
+
+function setCheck(id, val) { const it=items.find(i=>i.id===id); if(it){ it.checked=val; updateBatchBar(); } }
+function setTarget(id, val) {
+  const it=items.find(i=>i.id===id); if(!it) return;
+  const [w,h]=val.split('x').map(Number); it.selectedTarget=[w,h];
+}
+function toggleSelectAll() {
+  const act = items.filter(i=>i.status!=='report');
+  const allChecked = act.every(i=>i.checked);
+  act.forEach(i=>i.checked=!allChecked);
+  renderRows(); updateBatchBar();
+}
+function updateBatchBar() {
+  const sel = items.filter(i=>i.checked&&i.status!=='report');
+  document.getElementById('sel-info').textContent=`已選 ${sel.length} 張`;
+  document.getElementById('batch-btn').disabled = sel.length===0;
+}
+function clearAll() { items.forEach(i=>URL.revokeObjectURL(i.thumbUrl)); items=[]; currentFilter='all'; render(); }
+function clearProcessed() { items=items.filter(i=>i.processState!=='done'); render(); }
+function copyReport() {
+  const reps=items.filter(i=>i.status==='report');
+  const text='以下素材尺寸比例不符 iDASH 規定，Resize 將變形，請確認是否可略過：\n'+reps.map(i=>`• ${i.name}（原始尺寸：${i.w}×${i.h}）`).join('\n');
+  navigator.clipboard.writeText(text).then(()=>alert('已複製到剪貼簿！'));
+}
+
+// ── Processing ─────────────────────────────────────────
+function getOutputFormat(mime) {
+  const sel = document.getElementById('out-fmt').value;
+  if (sel !== 'same') return sel;
+  if (mime==='image/png') return 'image/png';
+  if (mime==='image/webp') return 'image/webp';
+  return 'image/jpeg';
+}
+
+// Core: load image onto canvas at target size, then compress
+async function processItem(it) {
+  const maxKB = parseFloat(document.getElementById('max-kb').value)||900;
+  const target = it.selectedTarget || [it.w, it.h];
+  const [tw, th] = target;
+  let outFmt = getOutputFormat(it.mime);
+
+  // PNG: always convert to JPEG/WebP so compression actually works
+  // (PNG ignores quality param, so resizing a PNG stays large without conversion)
+  if (it.mime==='image/png') {
+    const pngMode = document.getElementById('png-over').value;
+    outFmt = pngMode === 'webp' ? 'image/webp' : 'image/jpeg';
+  }
+
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(it.file);
+    img.onload = async () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      canvas.width = tw; canvas.height = th;
+      const ctx = canvas.getContext('2d');
+      // White background for JPEG (avoids transparent → black)
+      if (outFmt==='image/jpeg') { ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,tw,th); }
+      ctx.drawImage(img, 0, 0, tw, th);
+      const blob = await compressToTarget(canvas, outFmt, maxKB);
+      resolve({ blob, outW:tw, outH:th, outKB: blob ? blob.size/1024 : 0, outFmt });
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
+async function compressToTarget(canvas, fmt, maxKB) {
+  if (fmt==='image/png') {
+    // PNG: quality param ignored by spec; just export as-is
+    return toBlob(canvas, fmt, 1);
+  }
+  // For JPEG/WebP: binary-ish search for quality that fits
+  const steps = [0.95, 0.88, 0.80, 0.70, 0.60, 0.50, 0.40, 0.30, 0.20];
+  for (const q of steps) {
+    const b = await toBlob(canvas, fmt, q);
+    if (b && b.size < maxKB * 1000) return b; // use decimal KB to match iDASH
+  }
+  return toBlob(canvas, fmt, 0.20);
+}
+
+function toBlob(canvas, fmt, q) {
+  return new Promise(res => canvas.toBlob(res, fmt, q));
+}
+
+async function processOne(id) {
+  const it = items.find(i=>i.id===id);
+  if (!it) return;
+  it.processState='processing';
+  updateRowCells(it);
+  const result = await processItem(it);
+  if (result && result.blob) {
+    it.blob=result.blob; it.outKB=result.outKB; it.outW=result.outW; it.outH=result.outH; it.outFmt=result.outFmt;
+    const maxKBcheck=parseFloat(document.getElementById('max-kb').value)||900;
+    it.processState = (result.blob && result.blob.size < maxKBcheck * 1000) ? 'done' : 'over-limit';
+  } else {
+    it.processState='error';
+  }
+  updateRowCells(it);
+}
+
+function updateRowCells(it) {
+  const maxKB = parseFloat(document.getElementById('max-kb').value)||900;
+  // Action cell
+  const actCell = document.getElementById('act-'+it.id);
+  if (actCell) {
+    if (it.processState==='done') actCell.innerHTML=`<button class="act-btn done" onclick="downloadOne(${it.id})">↓ 下載</button>`;
+    else if (it.processState==='processing') actCell.innerHTML=`<button class="act-btn" disabled>處理中…</button>`;
+    else if (it.processState==='error') actCell.innerHTML=`<button class="act-btn err" onclick="processOne(${it.id})">重試</button>`;
+  }
+  // Output info cell
+  const outCell = document.getElementById('out-'+it.id);
+  if (outCell) {
+    if ((it.processState==='done'||it.processState==='over-limit') && it.outKB!=null) {
+      const sizeClass = it.outKB<=maxKB?'ok':'warn';
+      const icon = it.outKB<=maxKB?'✓':'⚠';
+      outCell.innerHTML=`<div class="out-info"><span class="out-size ${sizeClass}">${icon} ${fmt_kb(it.outKB)}</span><span class="out-dims">${it.outW}×${it.outH}</span></div>`;
+    } else if (it.processState==='processing') {
+      outCell.innerHTML=`<span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">處理中…</span>`;
+    } else {
+      outCell.innerHTML=`<span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">—</span>`;
+    }
+  }
+}
+
+function downloadOne(id) {
+  const it=items.find(i=>i.id===id);
+  if (!it||!it.blob) return;
+  triggerDownload(it.blob, outFilename(it.name, it.outFmt));
+}
+function outFilename(origName, outFmt) {
+  // If format changed from PNG to JPEG/WebP, update extension
+  const extMap = { 'image/jpeg': '.jpg', 'image/webp': '.webp' };
+  const newExt = extMap[outFmt];
+  if (!newExt) return origName; // PNG or same format → keep original name
+  // Only change extension if original was .png
+  if (origName.toLowerCase().endsWith('.png')) {
+    return origName.slice(0, -4) + newExt;
+  }
+  return origName;
+}
+
+function downloadOriginal(id) {
+  const it=items.find(i=>i.id===id);
+  if (!it) return;
+  triggerDownload(it.file, it.name);
+}
+function triggerDownload(blobOrFile, name) {
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blobOrFile);
+  a.download=name;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+}
+
+async function processBatch() {
+  const sel = items.filter(i=>i.checked&&i.status!=='report'&&i.processState!=='done');
+  if (!sel.length) return;
+  const btn=document.getElementById('batch-btn'); btn.disabled=true;
+  const pw=document.getElementById('prog-wrap'); pw.style.display='block';
+  const pb=document.getElementById('prog-bar');
+  const pl=document.getElementById('prog-label');
+  const zip=new JSZip();
+
+  for (let i=0;i<sel.length;i++) {
+    const it=sel[i];
+    pb.style.width=Math.round(i/sel.length*100)+'%';
+    pl.textContent=`${i+1}/${sel.length} — ${it.name}`;
+    it.processState='processing'; updateRowCells(it);
+    if (it.status==='ok') {
+      // 可直接上傳：原始檔案直接進 ZIP，不需處理
+      zip.file(it.name, it.file);
+      it.processState='done';
+    } else {
+      const result=await processItem(it);
+      if (result&&result.blob) {
+        it.blob=result.blob; it.outKB=result.outKB; it.outW=result.outW; it.outH=result.outH; it.outFmt=result.outFmt;
+        const maxKB=parseFloat(document.getElementById('max-kb').value)||900;
+        if (result.blob && result.blob.size < maxKB * 1000) {
+          it.processState='done';
+          zip.file(outFilename(it.name, result.outFmt), result.blob); // correct ext for format
+        } else {
+          // Still over limit after compression — exclude from ZIP
+          it.processState='over-limit';
+        }
+      } else {
+        it.processState='error';
+      }
+    }
+    updateRowCells(it);
+    await new Promise(r=>setTimeout(r,40));
+  }
+
+  pb.style.width='100%';
+  pl.textContent='打包中…';
+  const content=await zip.generateAsync({type:'blob'});
+  saveAs(content,`idash_assets_${new Date().toISOString().slice(0,10)}.zip`);
+  const doneCount=sel.filter(i=>i.processState==='done').length;
+  pl.textContent=`完成！${doneCount} 張已下載`;
+  btn.disabled=false; updateBatchBar();
+}
+</script>
+</body>
+</html>
