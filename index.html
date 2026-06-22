@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appier iDASH Tools</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0a;
+  --s1:#111;--s2:#181818;--s3:#222;
+  --border:#1e1e1e;--border2:#2e2e2e;
+  --text:#f0ede8;--muted:#4a4a4a;--muted2:#777;
+  --green:#7DD8FF;--blue:#5eb8ff;--amber:#ffb830;--purple:#c084fc;
+  --mono:'DM Mono',monospace;--sans:'Syne',sans-serif;
+}
+
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--sans);min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* Grid noise background */
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;
+  background-image:
+    linear-gradient(rgba(168,240,74,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(168,240,74,0.03) 1px, transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;
+}
+
+.wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:0 2rem}
+
+/* ── Header ── */
+header{
+  padding:4rem 0 3rem;
+  border-bottom:1px solid var(--border);
+  margin-bottom:3.5rem;
+}
+.header-inner{display:flex;align-items:flex-end;justify-content:space-between;gap:2rem;flex-wrap:wrap}
+
+.logo-block{}
+.logo-eyebrow{
+  font-family:var(--mono);font-size:0.65rem;
+  color:var(--green);letter-spacing:0.15em;text-transform:uppercase;
+  margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem;
+}
+.logo-eyebrow::before{content:'';width:20px;height:1px;background:var(--green)}
+h1{
+  font-size:clamp(2rem,5vw,3.25rem);font-weight:800;
+  letter-spacing:-0.04em;line-height:1.0;
+  color:var(--text);
+}
+h1 span{color:var(--green)}
+.tagline{
+  margin-top:0.75rem;
+  font-family:var(--mono);font-size:0.72rem;
+  color:var(--muted2);letter-spacing:0.02em;
+}
+
+.header-meta{
+  text-align:right;
+  font-family:var(--mono);font-size:0.62rem;
+  color:var(--muted);
+  line-height:1.8;
+}
+.header-meta strong{color:var(--muted2);font-weight:500}
+
+/* ── Tool Cards ── */
+.tools{display:flex;flex-direction:column;gap:1px;margin-bottom:4rem}
+
+.tool-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:8px;
+  overflow:hidden;
+  text-decoration:none;color:inherit;
+  display:grid;
+  grid-template-columns:5px 1fr auto;
+  transition:border-color 0.15s, background 0.15s, transform 0.12s;
+  position:relative;
+}
+.tool-card:hover{
+  border-color:var(--border2);
+  background:var(--s2);
+  transform:translateX(4px);
+}
+.tool-card:active{transform:translateX(4px) scale(0.995)}
+
+/* Accent stripe */
+.card-stripe{width:5px;background:var(--card-color,var(--green));flex-shrink:0}
+
+.card-body{padding:1.5rem 1.75rem;display:flex;flex-direction:column;gap:0.6rem}
+.card-top{display:flex;align-items:center;gap:0.75rem}
+.card-icon{
+  font-size:1.4rem;line-height:1;flex-shrink:0;
+  filter:grayscale(0.2);
+}
+.card-title{
+  font-size:1.1rem;font-weight:700;letter-spacing:-0.02em;
+  color:var(--card-color,var(--green));
+}
+.card-desc{
+  font-size:0.8rem;color:var(--muted2);line-height:1.6;
+  font-family:var(--mono);
+}
+.card-tags{display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.2rem}
+.tag{
+  font-family:var(--mono);font-size:0.58rem;
+  padding:0.18rem 0.5rem;border-radius:3px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--border2);
+  color:var(--muted2);white-space:nowrap;
+}
+
+.card-arrow{
+  display:flex;align-items:center;padding:0 1.5rem;
+  font-size:1.1rem;color:var(--muted);
+  transition:color 0.15s, transform 0.15s;
+  flex-shrink:0;
+}
+.tool-card:hover .card-arrow{color:var(--card-color,var(--green));transform:translateX(3px)}
+
+/* Card colors */
+.card-idash  { --card-color: var(--green) }
+.card-gif    { --card-color: var(--blue) }
+.card-video  { --card-color: var(--amber) }
+
+/* ── Footer ── */
+footer{
+  border-top:1px solid var(--border);
+  padding:2rem 0;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:1rem;
+}
+.footer-left{font-family:var(--mono);font-size:0.62rem;color:var(--muted)}
+.footer-right{font-family:var(--mono);font-size:0.62rem;color:var(--muted);text-align:right}
+.footer-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:0.4rem;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+
+/* Fade-in on load */
+.tool-card{
+  opacity:0;
+  animation:fadeUp 0.4s ease forwards;
+}
+.tool-card:nth-child(1){animation-delay:0.05s}
+.tool-card:nth-child(2){animation-delay:0.12s}
+.tool-card:nth-child(3){animation-delay:0.19s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px) translateX(0)}to{opacity:1;transform:translateY(0) translateX(0)}}
+/* Override transform origin for hover after load */
+.tool-card{animation-fill-mode:both}
+
+@media(max-width:600px){
+  .header-inner{flex-direction:column;align-items:flex-start}
+  .header-meta{text-align:left}
+  .card-body{padding:1.2rem 1.25rem}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="header-inner">
+      <div class="logo-block">
+        <div class="logo-eyebrow">Appier · Internal Tools</div>
+        <h1>iDASH<span>.</span><br>Toolkit</h1>
+        <p class="tagline">素材處理工具集 · 全部在瀏覽器本地執行</p>
+      </div>
+      <div class="header-meta">
+        <strong>3 tools</strong> · 無需安裝<br>
+        所有檔案處理均在本機完成<br>
+        不上傳任何資料至伺服器
+      </div>
+    </div>
+  </header>
+
+  <div class="tools">
+
+    <a href="idash-checker.html" class="tool-card card-idash">
+      <div class="card-stripe"></div>
+      <div class="card-body">
+        <div class="card-top">
+          <span class="card-icon">🔍</span>
+          <span class="card-title">iDASH 素材檢核</span>
+        </div>
+        <p class="card-desc">批量上傳素材，自動比對 iDASH Banner 允許尺寸清單。判斷哪些可直接上傳、哪些需要 Resize 或壓縮、哪些需要回報 AM。支援批量處理並下載 ZIP，檔名完全不變。</p>
+        <div class="card-tags">
+          <span class="tag">尺寸檢核</span>
+          <span class="tag">Resize</span>
+          <span class="tag">PNG → JPEG 壓縮</span>
+          <span class="tag">批量下載 ZIP</span>
+          <span class="tag">回報 AM 清單</span>
+        </div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+    <a href="gif-processor.html" class="tool-card card-gif">
+      <div class="card-stripe"></div>
+      <div class="card-body">
+        <div class="card-top">
+          <span class="card-icon">🎞</span>
+          <span class="card-title">GIF 批次處理</span>
+        </div>
+        <p class="card-desc">批量修改 GIF Loop 次數（預設改為 5 次）並壓縮到目標大小（預設 300KB）。大小符合的只改 Loop 不重新編碼，超過大小限制的自動縮小尺寸並重新編碼。</p>
+        <div class="card-tags">
+          <span class="tag">Loop 次數修改</span>
+          <span class="tag">壓縮 &lt; 300KB</span>
+          <span class="tag">批量下載 ZIP</span>
+          <span class="tag">不重新編碼（小檔）</span>
+        </div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+    <a href="video-endcard.html" class="tool-card card-video">
+      <div class="card-stripe"></div>
+      <div class="card-body">
+        <div class="card-top">
+          <span class="card-icon">🎬</span>
+          <span class="card-title">影片 Endcard 截圖</span>
+        </div>
+        <p class="card-desc">批量截取影片最後一幀作為 Endcard 素材。可設定從結尾前幾秒截圖、輸出格式（JPEG / PNG / WebP），並自動壓縮到目標大小。批量打包 ZIP 下載。</p>
+        <div class="card-tags">
+          <span class="tag">截最後一幀</span>
+          <span class="tag">自動壓縮</span>
+          <span class="tag">JPEG / PNG / WebP</span>
+          <span class="tag">批量下載 ZIP</span>
+        </div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+  </div>
+
+  <footer>
+    <div class="footer-left"><span class="footer-dot"></span>本機執行 · 無資料外傳 · 支援所有現代瀏覽器</div>
+    <div class="footer-right">Appier Account Management · iDASH Workflow</div>
+  </footer>
+
+</div>
+</body>
+</html>
