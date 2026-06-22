@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>影片 Endcard 截圖工具</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0d0d;--s1:#141414;--s2:#1c1c1c;--s3:#242424;
+  --border:#252525;--border2:#333;
+  --text:#f0f0f0;--muted:#5a5a5a;--muted2:#888;
+  --green:#a8f04a;--blue:#5eb8ff;--amber:#ffb830;--red:#ff5c5c;
+  --mono:'DM Mono',monospace;--sans:'Syne',sans-serif;--r:6px;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;font-size:14px}
+
+.topbar{
+  position:sticky;top:0;z-index:200;
+  background:rgba(13,13,13,0.96);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  padding:0.6rem 1.5rem;
+  display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;
+}
+.topbar h1{font-size:1rem;font-weight:700;color:var(--green);letter-spacing:-0.01em;white-space:nowrap}
+.topbar .sub{font-family:var(--mono);font-size:0.62rem;color:var(--muted)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.sg{display:flex;align-items:center;gap:0.5rem}
+.sg label{font-family:var(--mono);font-size:0.65rem;color:var(--muted);white-space:nowrap}
+.sg select,.sg input[type=number]{
+  background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);
+  color:var(--text);font-family:var(--mono);font-size:0.72rem;
+  padding:0.28rem 0.5rem;outline:none;
+}
+.sg select{width:120px}
+.sg input[type=number]{width:68px}
+.sg select:focus,.sg input:focus{border-color:var(--green)}
+.sg span{font-family:var(--mono);font-size:0.65rem;color:var(--muted)}
+
+.main{max-width:1100px;margin:0 auto;padding:1.25rem 1.5rem 5rem}
+
+#drop-zone{
+  border:1.5px dashed var(--border2);border-radius:10px;
+  padding:2.5rem 1rem;text-align:center;cursor:pointer;
+  transition:all 0.15s;margin-bottom:1.25rem;
+}
+#drop-zone:hover,#drop-zone.over{border-color:var(--green);background:rgba(168,240,74,0.03)}
+#drop-zone .icon{font-size:2rem;opacity:0.3;margin-bottom:0.6rem}
+#drop-zone .t{font-size:0.88rem;font-weight:600;margin-bottom:0.3rem}
+#drop-zone .s{font-size:0.72rem;color:var(--muted);font-family:var(--mono)}
+
+/* Summary */
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;margin-bottom:1.25rem}
+.sc{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:0.7rem 1rem}
+.sc-n{font-size:1.5rem;font-weight:700;line-height:1;margin-bottom:0.2rem}
+.sc-l{font-family:var(--mono);font-size:0.6rem;color:var(--muted)}
+.c-total{color:var(--blue)}.c-done{color:var(--green)}.c-err{color:var(--red)}
+
+/* Table */
+.table-wrap{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.tbar{
+  display:flex;align-items:center;gap:0.6rem;padding:0.65rem 1rem;
+  border-bottom:1px solid var(--border);background:var(--s2);flex-wrap:wrap;
+}
+.tbar-title{font-family:var(--mono);font-size:0.68rem;color:var(--muted2);margin-right:auto}
+.tbtn{
+  background:none;border:1px solid var(--border2);border-radius:var(--r);
+  color:var(--muted);font-family:var(--mono);font-size:0.62rem;
+  padding:0.25rem 0.55rem;cursor:pointer;transition:all 0.12s;white-space:nowrap;
+}
+.tbtn:hover{color:var(--text);border-color:var(--text)}
+
+/* columns: check | preview | name | dims | duration | filesize | action */
+.col-hd,.row{
+  display:grid;
+  grid-template-columns:20px 96px minmax(0,2fr) 96px 80px 80px 80px;
+  gap:0.75rem;align-items:center;
+  padding:0.6rem 1rem;
+  border-bottom:1px solid var(--border);
+}
+.col-hd{
+  background:var(--s3);border-bottom:1px solid var(--border2);padding:0.38rem 1rem;
+}
+.col-hd span{font-family:var(--mono);font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em}
+.row:last-child{border-bottom:none}
+.row:hover{background:var(--s2)}
+
+.row input[type=checkbox]{accent-color:var(--green);width:13px;height:13px;cursor:pointer}
+
+/* Preview cell */
+.preview-cell{position:relative;width:88px;height:52px;border-radius:4px;background:var(--s3);overflow:hidden;flex-shrink:0}
+.preview-cell img{width:100%;height:100%;object-fit:cover;display:block}
+.preview-cell .placeholder{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:1.2rem;opacity:0.2;
+}
+.preview-cell .status-overlay{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,0.55);font-size:0.6rem;font-family:var(--mono);
+}
+.preview-cell .status-overlay.done{color:var(--green)}
+.preview-cell .status-overlay.processing{color:var(--amber)}
+.preview-cell .status-overlay.error{color:var(--red)}
+
+.rname{font-family:var(--mono);font-size:0.68rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted2)}
+.rmeta{font-family:var(--mono);font-size:0.68rem;color:var(--muted2)}
+
+.act-btn{
+  background:none;border:1px solid var(--border2);border-radius:var(--r);
+  color:var(--muted2);font-family:var(--mono);font-size:0.6rem;
+  padding:0.28rem 0.5rem;cursor:pointer;transition:all 0.12s;white-space:nowrap;width:100%;
+}
+.act-btn:hover:not(:disabled){border-color:var(--green);color:var(--green)}
+.act-btn.done{border-color:var(--green);color:var(--green);background:rgba(168,240,74,0.08)}
+.act-btn.err{border-color:var(--red);color:var(--red)}
+.act-btn:disabled{opacity:0.35;cursor:not-allowed}
+
+.empty{padding:3.5rem;text-align:center;color:var(--muted);font-family:var(--mono);font-size:0.75rem}
+
+/* Bbar */
+.bbar{
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:rgba(13,13,13,0.97);backdrop-filter:blur(10px);
+  border-top:1px solid var(--border);
+  padding:0.7rem 1.5rem;
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+}
+.sel-info{font-family:var(--mono);font-size:0.72rem;color:var(--muted);min-width:80px}
+.b-main{
+  background:var(--green);color:#0a0a0a;border:none;border-radius:var(--r);
+  font-family:var(--sans);font-size:0.82rem;font-weight:700;
+  padding:0.5rem 1.1rem;cursor:pointer;transition:opacity 0.12s;
+}
+.b-main:hover{opacity:0.88}
+.b-main:disabled{opacity:0.3;cursor:not-allowed}
+.b-sec{
+  background:none;border:1px solid var(--border2);border-radius:var(--r);
+  color:var(--muted2);font-family:var(--mono);font-size:0.72rem;
+  padding:0.5rem 0.9rem;cursor:pointer;transition:all 0.12s;
+}
+.b-sec:hover{border-color:var(--text);color:var(--text)}
+.prog-wrap{flex:1;min-width:140px;display:none}
+.prog-track{background:var(--s3);border-radius:3px;height:4px;overflow:hidden}
+.prog-bar{height:100%;background:var(--green);width:0;transition:width 0.2s}
+.prog-label{font-family:var(--mono);font-size:0.62rem;color:var(--muted);margin-top:0.3rem}
+
+@media(max-width:760px){
+  .col-hd,.row{grid-template-columns:20px 80px 1fr 80px 68px 68px 68px}
+  .summary{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>影片 Endcard 截圖</h1>
+  <span class="sub">批量截取最後一幀</span>
+  <div class="topbar-right">
+    <div class="sg">
+      <label>截圖格式</label>
+      <select id="out-fmt">
+        <option value="image/jpeg">JPEG（推薦）</option>
+        <option value="image/png">PNG（無損）</option>
+        <option value="image/webp">WebP</option>
+      </select>
+    </div>
+    <div class="sg">
+      <label>從結尾前</label>
+      <input type="number" id="offset" value="0.1" min="0" max="10" step="0.05">
+      <span>秒截圖</span>
+    </div>
+    <div class="sg">
+      <label>大小上限</label>
+      <input type="number" id="max-kb" value="900" min="10" max="10000">
+      <span>KB（0＝不壓縮）</span>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div id="drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)" onclick="document.getElementById('fi').click()">
+    <div class="icon">🎬</div>
+    <div class="t">點擊或拖曳影片到這裡</div>
+    <div class="s">支援 MP4、MOV、AVI、WebM 等常見格式 · 可一次上傳多個</div>
+    <input type="file" id="fi" multiple accept="video/*" style="display:none" onchange="addFiles(this.files)">
+  </div>
+
+  <div class="summary">
+    <div class="sc c-total"><div class="sc-n" id="n-total">0</div><div class="sc-l">📹 已上傳</div></div>
+    <div class="sc c-done"><div class="sc-n" id="n-done">0</div><div class="sc-l">✅ 截圖完成</div></div>
+    <div class="sc c-err"><div class="sc-n" id="n-err">0</div><div class="sc-l">❌ 失敗</div></div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="tbar">
+      <span class="tbar-title" id="tbar-count">尚未上傳影片</span>
+      <button class="tbtn" onclick="selectAll()">全選</button>
+      <button class="tbtn" onclick="clearAll()" style="color:var(--red)">清除全部</button>
+    </div>
+    <div class="col-hd">
+      <span></span>
+      <span>預覽</span>
+      <span>檔名</span>
+      <span>尺寸</span>
+      <span>長度</span>
+      <span>大小</span>
+      <span>動作</span>
+    </div>
+    <div id="rows"><div class="empty">上傳影片後顯示列表</div></div>
+  </div>
+</div>
+
+<div class="bbar">
+  <span class="sel-info" id="sel-info">已選 0 個</span>
+  <button class="b-main" id="batch-btn" onclick="processBatch()" disabled>批量截圖並下載 ZIP</button>
+  <button class="b-sec" onclick="clearDone()">清除已完成</button>
+  <div class="prog-wrap" id="prog-wrap">
+    <div class="prog-track"><div class="prog-bar" id="prog-bar"></div></div>
+    <div class="prog-label" id="prog-label"></div>
+  </div>
+</div>
+
+<script>
+let items = [], nextId = 0;
+
+// ── Utils ──────────────────────────────────────────────
+function fmtDur(sec) {
+  if (!sec || isNaN(sec)) return '—';
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+function fmtSize(bytes) {
+  if (bytes >= 1024*1024) return (bytes/1024/1024).toFixed(1) + ' MB';
+  return (bytes/1024).toFixed(0) + ' KB';
+}
+function outExt(fmt) {
+  return { 'image/png':'png', 'image/jpeg':'jpg', 'image/webp':'webp' }[fmt] || 'png';
+}
+function outName(origName, fmt) {
+  // Strip video extension, add image extension — OR keep full name + ext
+  const base = origName.replace(/\.[^.]+$/, '');
+  return base + '.' + outExt(fmt);
+}
+
+// ── Drag & Drop ────────────────────────────────────────
+function onDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('over'); }
+function onDragLeave() { document.getElementById('drop-zone').classList.remove('over'); }
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('over');
+  addFiles(e.dataTransfer.files);
+}
+
+// ── Add files ──────────────────────────────────────────
+function addFiles(fileList) {
+  const arr = Array.from(fileList).filter(f => f.type.startsWith('video/') || /\.(mp4|mov|avi|webm|mkv|m4v|wmv|flv)$/i.test(f.name));
+  if (!arr.length) return;
+  arr.forEach(f => {
+    const id = nextId++;
+    items.push({
+      id, file: f, name: f.name,
+      w: 0, h: 0, duration: 0,
+      processState: 'idle',
+      blob: null, previewUrl: null, checked: true,
+    });
+  });
+  document.getElementById('fi').value = '';
+  render();
+  // Load metadata for each new item
+  arr.forEach((f, i) => {
+    const id = items[items.length - arr.length + i].id;
+    loadMeta(id, f);
+  });
+}
+
+function loadMeta(id, file) {
+  const video = document.createElement('video');
+  video.preload = 'metadata';
+  video.muted = true;
+  const url = URL.createObjectURL(file);
+  video.onloadedmetadata = () => {
+    const it = items.find(i => i.id === id);
+    if (!it) { URL.revokeObjectURL(url); return; }
+    it.w = video.videoWidth;
+    it.h = video.videoHeight;
+    it.duration = video.duration;
+    URL.revokeObjectURL(url);
+    updateRowMeta(it);
+    updateSummary();
+  };
+  video.onerror = () => URL.revokeObjectURL(url);
+  video.src = url;
+}
+
+function updateRowMeta(it) {
+  const row = document.getElementById('row-' + it.id);
+  if (!row) return;
+  // Update dims cell (index 3), duration cell (index 4)
+  const cells = row.querySelectorAll('.rmeta');
+  if (cells[0]) cells[0].textContent = it.w ? `${it.w}×${it.h}` : '—';
+  if (cells[1]) cells[1].textContent = fmtDur(it.duration);
+}
+
+// ── Core: capture last frame ───────────────────────────
+function toBlob(canvas, fmt, quality) {
+  return new Promise(res => canvas.toBlob(res, fmt, quality));
+}
+
+async function compressToTarget(canvas, fmt, maxKB) {
+  // PNG: quality param is ignored — return as-is
+  if (fmt === 'image/png') return toBlob(canvas, fmt, 1);
+  if (maxKB <= 0) return toBlob(canvas, fmt, 0.92); // 0 = no limit
+  const steps = [0.95, 0.88, 0.80, 0.70, 0.60, 0.50, 0.40, 0.30, 0.20];
+  for (const q of steps) {
+    const b = await toBlob(canvas, fmt, q);
+    if (b && b.size / 1024 <= maxKB) return b;
+  }
+  return toBlob(canvas, fmt, 0.20);
+}
+
+function captureLastFrame(file) {
+  return new Promise((resolve, reject) => {
+    const fmt    = document.getElementById('out-fmt').value;
+    const offset = parseFloat(document.getElementById('offset').value) || 0.1;
+    const maxKB  = parseFloat(document.getElementById('max-kb').value) || 0;
+    const video  = document.createElement('video');
+    video.muted  = true;
+    video.preload = 'auto';
+    const url = URL.createObjectURL(file);
+
+    video.onloadedmetadata = () => {
+      const seekTo = Math.max(0, video.duration - offset);
+      video.currentTime = seekTo;
+    };
+
+    video.onseeked = async () => {
+      const canvas = document.createElement('canvas');
+      canvas.width  = video.videoWidth;
+      canvas.height = video.videoHeight;
+      // White background for JPEG (avoids transparent→black)
+      const ctx = canvas.getContext('2d');
+      if (fmt === 'image/jpeg') { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+      ctx.drawImage(video, 0, 0);
+      URL.revokeObjectURL(url);
+      try {
+        const blob = await compressToTarget(canvas, fmt, maxKB);
+        if (blob) resolve({ blob, w: canvas.width, h: canvas.height, kb: blob.size/1024 });
+        else reject(new Error('截圖失敗'));
+      } catch(e) { reject(e); }
+    };
+
+    video.onerror = () => { URL.revokeObjectURL(url); reject(new Error('無法讀取影片')); };
+    video.src = url;
+    video.load();
+  });
+}
+
+// ── Render ─────────────────────────────────────────────
+function render() { updateSummary(); renderRows(); updateBatchBar(); }
+
+function updateSummary() {
+  document.getElementById('n-total').textContent = items.length;
+  document.getElementById('n-done').textContent  = items.filter(i => i.processState === 'done').length;
+  document.getElementById('n-err').textContent   = items.filter(i => i.processState === 'error').length;
+  document.getElementById('tbar-count').textContent = items.length ? `共 ${items.length} 個影片` : '尚未上傳影片';
+}
+
+function renderRows() {
+  const c = document.getElementById('rows');
+  if (!items.length) { c.innerHTML = '<div class="empty">上傳影片後顯示列表</div>'; return; }
+  c.innerHTML = items.map(buildRow).join('');
+}
+
+function buildRow(it) {
+  // Preview cell
+  let previewInner;
+  if (it.previewUrl) {
+    previewInner = `<img src="${it.previewUrl}" alt="endcard">`;
+  } else {
+    previewInner = `<div class="placeholder">🎬</div>`;
+  }
+  let overlay = '';
+  if (it.processState === 'processing') overlay = `<div class="status-overlay processing">處理中…</div>`;
+  else if (it.processState === 'error')  overlay = `<div class="status-overlay error">失敗</div>`;
+  else if (it.processState === 'done')   overlay = `<div class="status-overlay done">✓</div>`;
+
+  // Action button
+  let actHtml;
+  if (it.processState === 'done') {
+    const maxKB = parseFloat(document.getElementById('max-kb').value)||0;
+    const sizeLabel = it.outKB ? ` · ${it.outKB>=1024?(it.outKB/1024).toFixed(1)+'MB':it.outKB.toFixed(0)+'KB'}` : '';
+    const sizeColor = maxKB>0 && it.outKB>maxKB ? 'color:var(--red)' : 'color:var(--green)';
+    actHtml = `<div style="display:flex;flex-direction:column;gap:3px"><button class="act-btn done" onclick="downloadOne(${it.id})">↓ 下載</button><span style="font-family:var(--mono);font-size:0.58rem;${sizeColor}">${sizeLabel}</span></div>`;
+  } else if (it.processState === 'processing') {
+    actHtml = `<button class="act-btn" disabled>截圖中…</button>`;
+  } else if (it.processState === 'error') {
+    actHtml = `<button class="act-btn err" onclick="processOne(${it.id})">重試</button>`;
+  } else {
+    actHtml = `<button class="act-btn" onclick="processOne(${it.id})">截圖</button>`;
+  }
+
+  return `<div class="row" id="row-${it.id}">
+    <div><input type="checkbox" ${it.checked?'checked':''} onchange="setCheck(${it.id},this.checked)"></div>
+    <div class="preview-cell" id="preview-${it.id}">${previewInner}${overlay}</div>
+    <div class="rname" title="${it.name}">${it.name}</div>
+    <div class="rmeta">${it.w ? it.w+'×'+it.h : '—'}</div>
+    <div class="rmeta">${fmtDur(it.duration)}</div>
+    <div class="rmeta">${fmtSize(it.file.size)}</div>
+    <div id="act-${it.id}">${actHtml}</div>
+  </div>`;
+}
+
+function updateRowCells(it) {
+  // Preview
+  const previewEl = document.getElementById('preview-' + it.id);
+  if (previewEl) {
+    let inner = it.previewUrl ? `<img src="${it.previewUrl}" alt="endcard">` : `<div class="placeholder">🎬</div>`;
+    let overlay = '';
+    if (it.processState === 'processing') overlay = `<div class="status-overlay processing">截圖中…</div>`;
+    else if (it.processState === 'error')  overlay = `<div class="status-overlay error">失敗</div>`;
+    else if (it.processState === 'done')   overlay = `<div class="status-overlay done">✓</div>`;
+    previewEl.innerHTML = inner + overlay;
+  }
+  // Action
+  const actEl = document.getElementById('act-' + it.id);
+  if (actEl) {
+    if (it.processState === 'done')
+      actEl.innerHTML = `<button class="act-btn done" onclick="downloadOne(${it.id})">↓ 下載</button>`;
+    else if (it.processState === 'processing')
+      actEl.innerHTML = `<button class="act-btn" disabled>截圖中…</button>`;
+    else if (it.processState === 'error')
+      actEl.innerHTML = `<button class="act-btn err" onclick="processOne(${it.id})">重試</button>`;
+    else
+      actEl.innerHTML = `<button class="act-btn" onclick="processOne(${it.id})">截圖</button>`;
+  }
+  updateSummary();
+}
+
+// ── Actions ────────────────────────────────────────────
+function setCheck(id, val) { const it = items.find(i => i.id===id); if(it){ it.checked=val; updateBatchBar(); } }
+function selectAll() { items.forEach(i => i.checked=true); renderRows(); updateBatchBar(); }
+function updateBatchBar() {
+  const sel = items.filter(i => i.checked);
+  document.getElementById('sel-info').textContent = `已選 ${sel.length} 個`;
+  document.getElementById('batch-btn').disabled = sel.length === 0;
+}
+function clearAll() { items = []; render(); }
+function clearDone() { items = items.filter(i => i.processState !== 'done'); render(); }
+
+async function processOne(id) {
+  const it = items.find(i => i.id === id);
+  if (!it) return;
+  it.processState = 'processing';
+  updateRowCells(it);
+  try {
+    const { blob, w, h, kb } = await captureLastFrame(it.file);
+    it.blob = blob;
+    it.outW = w; it.outH = h; it.outKB = kb;
+    // Create preview URL
+    if (it.previewUrl) URL.revokeObjectURL(it.previewUrl);
+    it.previewUrl = URL.createObjectURL(blob);
+    it.processState = 'done';
+  } catch(e) {
+    console.error(e);
+    it.processState = 'error';
+  }
+  updateRowCells(it);
+  updateBatchBar();
+}
+
+function downloadOne(id) {
+  const it = items.find(i => i.id === id);
+  if (!it || !it.blob) return;
+  const fmt = document.getElementById('out-fmt').value;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(it.blob);
+  a.download = outName(it.name, fmt);
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+
+async function processBatch() {
+  const sel = items.filter(i => i.checked && i.processState !== 'done');
+  if (!sel.length) return;
+  const btn = document.getElementById('batch-btn'); btn.disabled = true;
+  const pw = document.getElementById('prog-wrap'); pw.style.display = 'block';
+  const pb = document.getElementById('prog-bar');
+  const pl = document.getElementById('prog-label');
+  const fmt = document.getElementById('out-fmt').value;
+  const zip = new JSZip();
+
+  for (let i = 0; i < sel.length; i++) {
+    const it = sel[i];
+    pb.style.width = Math.round(i / sel.length * 100) + '%';
+    pl.textContent = `${i+1} / ${sel.length} — ${it.name}`;
+    it.processState = 'processing'; updateRowCells(it);
+    try {
+      const { blob, w, h, kb } = await captureLastFrame(it.file);
+      it.blob = blob; it.outW = w; it.outH = h; it.outKB = kb;
+      if (it.previewUrl) URL.revokeObjectURL(it.previewUrl);
+      it.previewUrl = URL.createObjectURL(blob);
+      it.processState = 'done';
+      // Subfolder = video filename without extension (same level as endcard)
+      const folderName = it.name.replace(/\.[^.]+$/, '');
+      const endcardName = outName(it.name, fmt);
+      zip.file(folderName + '/' + endcardName, blob);          // endcard
+      zip.file(folderName + '/' + it.name, it.file);           // original video
+    } catch(e) {
+      console.error(e);
+      it.processState = 'error';
+    }
+    updateRowCells(it);
+    await new Promise(r => setTimeout(r, 30));
+  }
+
+  pb.style.width = '100%';
+  pl.textContent = '打包中…';
+  const content = await zip.generateAsync({ type: 'blob' });
+  saveAs(content, `endcards_${new Date().toISOString().slice(0,10)}.zip`);
+  const doneCount = sel.filter(i => i.processState === 'done').length;
+  pl.textContent = `完成！${doneCount} 個截圖已下載`;
+  btn.disabled = false; updateBatchBar();
+}
+</script>
+</body>
+</html>
