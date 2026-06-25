@@ -198,6 +198,33 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 }
 .png-note span{flex:1}
 
+.info-panel{
+  background:var(--s1);border:1px solid var(--border);border-radius:var(--r);
+  margin-bottom:1.25rem;overflow:hidden;
+}
+.info-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0.7rem 1rem;cursor:pointer;
+  font-family:var(--mono);font-size:0.72rem;color:var(--muted2);
+  transition:background 0.12s;
+}
+.info-header:hover{background:var(--s2)}
+.info-toggle{font-size:0.65rem;color:var(--muted);transition:transform 0.2s}
+.info-toggle.open{transform:rotate(180deg)}
+.info-body{padding:0 1rem 1rem;display:none;border-top:1px solid var(--border)}
+.info-body.show{display:block}
+.info-section{margin-top:0.9rem}
+.info-title{font-family:var(--mono);font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.5rem}
+.info-row{display:flex;align-items:center;gap:0.6rem;margin-bottom:0.35rem;font-family:var(--mono);font-size:0.7rem;color:var(--muted2)}
+.i-tag{font-size:0.6rem;padding:0.15rem 0.5rem;border-radius:3px;white-space:nowrap;font-weight:500}
+.t-ok{background:rgba(168,240,74,0.1);color:var(--green)}
+.t-resize{background:rgba(255,184,48,0.1);color:var(--amber)}
+.t-comp{background:rgba(94,184,255,0.1);color:var(--blue)}
+.t-am,.t-over{background:rgba(255,92,92,0.1);color:var(--red)}
+.info-note{background:rgba(255,184,48,0.04);border:1px solid rgba(255,184,48,0.15);border-radius:var(--r);padding:0.75rem;margin-top:0.9rem}
+.info-note p{font-family:var(--mono);font-size:0.68rem;color:var(--muted2);margin-bottom:0.4rem;line-height:1.5}
+.info-note p:last-child{margin-bottom:0}
+
 @media(max-width:900px){
   .row,.col-hd{grid-template-columns:20px 40px 1fr 80px 60px 100px 110px 90px 64px}
   .summary{grid-template-columns:repeat(2,1fr)}
@@ -243,6 +270,37 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 
   <div class="png-note" id="png-note">
     <span>⚠ 偵測到 PNG 圖片需處理。PNG 無法直接壓縮，將自動轉成「<span id="png-note-action"></span>」後壓縮輸出（右上角可切換格式）。</span>
+  </div>
+
+  <!-- Info Panel -->
+  <div class="info-panel" id="info-panel">
+    <div class="info-header" onclick="toggleInfo()">
+      <span>📋 下載規則說明</span>
+      <span class="info-toggle" id="info-toggle">▼</span>
+    </div>
+    <div class="info-body" id="info-body">
+      <div class="info-section">
+        <div class="info-title">✅ ZIP 包含（可直接上傳 iDASH）</div>
+        <div class="info-row"><span class="i-tag t-ok">可直接上傳</span>原始檔案不動，直接打包進 ZIP</div>
+        <div class="info-row"><span class="i-tag t-resize">需 Resize</span>調整尺寸後的版本（.jpg）</div>
+        <div class="info-row"><span class="i-tag t-comp">需壓縮</span>PNG 壓縮轉換後的版本（.jpg）</div>
+      </div>
+      <div class="info-section">
+        <div class="info-title">❌ ZIP 不包含</div>
+        <div class="info-row"><span class="i-tag t-am">回報 AM</span>比例不符，Resize 會變形，需另行確認</div>
+        <div class="info-row"><span class="i-tag t-over">壓縮後超限</span>處理後仍超過 900KB，需手動壓縮</div>
+      </div>
+      <div class="info-section info-note">
+        <div class="info-title">⚠️ 注意：PNG → JPG 重複檔案問題</div>
+        <p>PNG 格式壓縮後會輸出為 <strong>.jpg</strong>（讓 iDASH 正確辨識格式）。</p>
+        <p>如果你將 ZIP 解壓縮到原始資料夾，資料夾中會同時存在：</p>
+        <p style="margin:0.3rem 0 0.3rem 1rem;font-family:var(--mono);font-size:0.72rem;">
+          <span style="color:var(--muted2)">banner.png</span>（原始，需手動刪除）<br>
+          <span style="color:var(--green)">banner.jpg</span>（壓縮後，上傳用）
+        </p>
+        <p>ZIP 內會附上 <strong>「需刪除的原始PNG.txt」</strong>，列出所有需手動刪除的原始 PNG 清單。</p>
+      </div>
+    </div>
   </div>
 
   <div class="summary">
@@ -368,6 +426,13 @@ function analyze(w, h, kb, mime, f) {
 
 // Re-analyze when maxKB changes
 document.getElementById('max-kb').addEventListener('change', reAnalyzeAll);
+function toggleInfo() {
+  const body = document.getElementById('info-body');
+  const toggle = document.getElementById('info-toggle');
+  body.classList.toggle('show');
+  toggle.classList.toggle('open');
+}
+
 function reAnalyzeAll() {
   items = items.map(it => {
     const a = analyze(it.w, it.h, it.kb, it.mime, it.file);
@@ -639,8 +704,13 @@ function downloadOne(id) {
   triggerDownload(it.blob, outFilename(it.name, it.outFmt));
 }
 function outFilename(origName, outFmt) {
-  // Always keep original filename — extract to folder = overwrites original, no duplicates
-  // JPEG content inside PNG extension is accepted by iDASH (detects by content, not extension)
+  // Change extension when format changes (PNG→JPG) so iDASH receives correct format
+  const extMap = { 'image/jpeg': '.jpg', 'image/webp': '.webp' };
+  const newExt = extMap[outFmt];
+  if (!newExt) return origName;
+  if (origName.toLowerCase().endsWith('.png')) {
+    return origName.slice(0, -4) + newExt;
+  }
   return origName;
 }
 
@@ -665,6 +735,7 @@ async function processBatch() {
   const pb=document.getElementById('prog-bar');
   const pl=document.getElementById('prog-label');
   const zip=new JSZip();
+  const deleteList=[];
 
   for (let i=0;i<sel.length;i++) {
     const it=sel[i];
@@ -681,7 +752,9 @@ async function processBatch() {
         const maxKB=parseFloat(document.getElementById('max-kb').value)||900;
         if (result.blob && result.blob.size < maxKB * 1000) {
           it.processState='done';
-          zip.file(outFilename(it.name, result.outFmt), result.blob);
+          const _outName = outFilename(it.name, result.outFmt);
+          zip.file(_outName, result.blob);
+          if (_outName !== it.name) deleteList.push(it.name);
         } else {
           // Still over limit after compression — exclude from ZIP
           it.processState='over-limit';
@@ -692,6 +765,16 @@ async function processBatch() {
     }
     updateRowCells(it);
     await new Promise(r=>setTimeout(r,40));
+  }
+
+  if(deleteList.length > 0){
+    const today = new Date().toLocaleDateString('zh-TW');
+    const txt = '【需手動刪除的原始 PNG 檔案】\n'
+      + '以下 PNG 檔案已壓縮轉換為 JPG，請從原始資料夾中手動刪除，避免重複：\n\n'
+      + deleteList.map(n => '  ✕  ' + n).join('\n')
+      + '\n\n產生日期：' + today
+      + '\n（刪除後資料夾只保留 .jpg 版本，即可直接上傳 iDASH）';
+    zip.file('⚠ 需刪除的原始PNG.txt', txt);
   }
 
   pb.style.width='100%';
