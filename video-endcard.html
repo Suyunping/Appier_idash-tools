@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon-orange.svg">
 <link rel="apple-touch-icon" href="favicon-orange.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>影片 Endcard 截圖工具</title>
+<title>Video Endcard Screenshot工具</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -158,11 +158,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 <body>
 
 <div class="topbar">
-  <h1>影片 Endcard 截圖</h1>
-  <span class="sub">批量截取最後一幀</span>
+  <h1>Video Endcard Screenshot</h1>
+  <span class="sub">Batch capture last frame</span>
   <div class="topbar-right">
     <div class="sg">
-      <label>截圖格式</label>
+      <label>Output Format</label>
       <select id="out-fmt">
         <option value="image/jpeg">JPEG（推薦）</option>
         <option value="image/png">PNG（無損）</option>
@@ -170,14 +170,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
       </select>
     </div>
     <div class="sg">
-      <label>從結尾前</label>
+      <label>Offset from end</label>
       <input type="number" id="offset" value="0.1" min="0" max="10" step="0.05">
-      <span>秒截圖</span>
+      <span>sec before end</span>
     </div>
     <div class="sg">
-      <label>大小上限</label>
+      <label>Size上限</label>
       <input type="number" id="max-kb" value="900" min="10" max="10000">
-      <span>KB（0＝不壓縮）</span>
+      <span>KB (0 = no compression)</span>
     </div>
   </div>
 </div>
@@ -185,40 +185,40 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 <div class="main">
   <div id="drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)" onclick="document.getElementById('fi').click()">
     <div class="icon">🎬</div>
-    <div class="t">點擊或拖曳影片到這裡</div>
-    <div class="s">支援 MP4、MOV、AVI、WebM 等常見格式 · 可一次上傳多個</div>
+    <div class="t">Click or drag videos here</div>
+    <div class="s">Supports MP4, MOV, AVI, WebM and more · Upload multiple at once</div>
     <input type="file" id="fi" multiple accept="video/*" style="display:none" onchange="addFiles(this.files)">
   </div>
 
   <div class="summary">
-    <div class="sc c-total"><div class="sc-n" id="n-total">0</div><div class="sc-l">📹 已上傳</div></div>
-    <div class="sc c-done"><div class="sc-n" id="n-done">0</div><div class="sc-l">✅ 截圖完成</div></div>
-    <div class="sc c-err"><div class="sc-n" id="n-err">0</div><div class="sc-l">❌ 失敗</div></div>
+    <div class="sc c-total"><div class="sc-n" id="n-total">0</div><div class="sc-l">📹 Uploaded</div></div>
+    <div class="sc c-done"><div class="sc-n" id="n-done">0</div><div class="sc-l">✅ Screenshots Done</div></div>
+    <div class="sc c-err"><div class="sc-n" id="n-err">0</div><div class="sc-l">❌ Failed</div></div>
   </div>
 
   <div class="table-wrap">
     <div class="tbar">
-      <span class="tbar-title" id="tbar-count">尚未上傳影片</span>
-      <button class="tbtn" onclick="selectAll()">全選</button>
-      <button class="tbtn" onclick="clearAll()" style="color:var(--red)">清除全部</button>
+      <span class="tbar-title" id="tbar-count">No videos uploaded yet</span>
+      <button class="tbtn" onclick="selectAll()">Select All</button>
+      <button class="tbtn" onclick="clearAll()" style="color:var(--red)">Clear All</button>
     </div>
     <div class="col-hd">
       <span></span>
-      <span>預覽</span>
-      <span>檔名</span>
-      <span>尺寸</span>
-      <span>長度</span>
-      <span>大小</span>
-      <span>動作</span>
+      <span>Preview</span>
+      <span>Filename</span>
+      <span>Dimensions</span>
+      <span>Duration</span>
+      <span>Size</span>
+      <span>Action</span>
     </div>
-    <div id="rows"><div class="empty">上傳影片後顯示列表</div></div>
+    <div id="rows"><div class="empty">List will appear after upload</div></div>
   </div>
 </div>
 
 <div class="bbar">
-  <span class="sel-info" id="sel-info">已選 0 個</span>
-  <button class="b-main" id="batch-btn" onclick="processBatch()" disabled>批量截圖並下載 ZIP</button>
-  <button class="b-sec" onclick="clearDone()">清除已完成</button>
+  <span class="sel-info" id="sel-info">Selected 0 個</span>
+  <button class="b-main" id="batch-btn" onclick="processBatch()" disabled>Batch Screenshot & Download ZIP</button>
+  <button class="b-sec" onclick="clearDone()">Clear Completed</button>
   <div class="prog-wrap" id="prog-wrap">
     <div class="prog-track"><div class="prog-bar" id="prog-bar"></div></div>
     <div class="prog-label" id="prog-label"></div>
@@ -368,12 +368,12 @@ function updateSummary() {
   document.getElementById('n-total').textContent = items.length;
   document.getElementById('n-done').textContent  = items.filter(i => i.processState === 'done').length;
   document.getElementById('n-err').textContent   = items.filter(i => i.processState === 'error').length;
-  document.getElementById('tbar-count').textContent = items.length ? `共 ${items.length} 個影片` : '尚未上傳影片';
+  document.getElementById('tbar-count').textContent = items.length ? `Total ${items.length}  videos` : 'No videos uploaded yet';
 }
 
 function renderRows() {
   const c = document.getElementById('rows');
-  if (!items.length) { c.innerHTML = '<div class="empty">上傳影片後顯示列表</div>'; return; }
+  if (!items.length) { c.innerHTML = '<div class="empty">List will appear after upload</div>'; return; }
   c.innerHTML = items.map(buildRow).join('');
 }
 
@@ -386,7 +386,7 @@ function buildRow(it) {
     previewInner = `<div class="placeholder">🎬</div>`;
   }
   let overlay = '';
-  if (it.processState === 'processing') overlay = `<div class="status-overlay processing">處理中…</div>`;
+  if (it.processState === 'processing') overlay = `<div class="status-overlay processing">Processing...</div>`;
   else if (it.processState === 'error')  overlay = `<div class="status-overlay error">失敗</div>`;
   else if (it.processState === 'done')   overlay = `<div class="status-overlay done">✓</div>`;
 
@@ -396,11 +396,11 @@ function buildRow(it) {
     const maxKB = parseFloat(document.getElementById('max-kb').value)||0;
     const sizeLabel = it.outKB ? ` · ${it.outKB>=1024?(it.outKB/1024).toFixed(1)+'MB':it.outKB.toFixed(0)+'KB'}` : '';
     const sizeColor = maxKB>0 && it.outKB>maxKB ? 'color:var(--red)' : 'color:var(--green)';
-    actHtml = `<div style="display:flex;flex-direction:column;gap:3px"><button class="act-btn done" onclick="downloadOne(${it.id})">↓ 下載</button><span style="font-family:var(--mono);font-size:0.58rem;${sizeColor}">${sizeLabel}</span></div>`;
+    actHtml = `<div style="display:flex;flex-direction:column;gap:3px"><button class="act-btn done" onclick="downloadOne(${it.id})">↓ Download</button><span style="font-family:var(--mono);font-size:0.58rem;${sizeColor}">${sizeLabel}</span></div>`;
   } else if (it.processState === 'processing') {
-    actHtml = `<button class="act-btn" disabled>截圖中…</button>`;
+    actHtml = `<button class="act-btn" disabled>Capturing...</button>`;
   } else if (it.processState === 'error') {
-    actHtml = `<button class="act-btn err" onclick="processOne(${it.id})">重試</button>`;
+    actHtml = `<button class="act-btn err" onclick="processOne(${it.id})">Retry</button>`;
   } else {
     actHtml = `<button class="act-btn" onclick="processOne(${it.id})">截圖</button>`;
   }
@@ -422,7 +422,7 @@ function updateRowCells(it) {
   if (previewEl) {
     let inner = it.previewUrl ? `<img src="${it.previewUrl}" alt="endcard">` : `<div class="placeholder">🎬</div>`;
     let overlay = '';
-    if (it.processState === 'processing') overlay = `<div class="status-overlay processing">截圖中…</div>`;
+    if (it.processState === 'processing') overlay = `<div class="status-overlay processing">Capturing...</div>`;
     else if (it.processState === 'error')  overlay = `<div class="status-overlay error">失敗</div>`;
     else if (it.processState === 'done')   overlay = `<div class="status-overlay done">✓</div>`;
     previewEl.innerHTML = inner + overlay;
@@ -431,11 +431,11 @@ function updateRowCells(it) {
   const actEl = document.getElementById('act-' + it.id);
   if (actEl) {
     if (it.processState === 'done')
-      actEl.innerHTML = `<button class="act-btn done" onclick="downloadOne(${it.id})">↓ 下載</button>`;
+      actEl.innerHTML = `<button class="act-btn done" onclick="downloadOne(${it.id})">↓ Download</button>`;
     else if (it.processState === 'processing')
-      actEl.innerHTML = `<button class="act-btn" disabled>截圖中…</button>`;
+      actEl.innerHTML = `<button class="act-btn" disabled>Capturing...</button>`;
     else if (it.processState === 'error')
-      actEl.innerHTML = `<button class="act-btn err" onclick="processOne(${it.id})">重試</button>`;
+      actEl.innerHTML = `<button class="act-btn err" onclick="processOne(${it.id})">Retry</button>`;
     else
       actEl.innerHTML = `<button class="act-btn" onclick="processOne(${it.id})">截圖</button>`;
   }
@@ -447,7 +447,7 @@ function setCheck(id, val) { const it = items.find(i => i.id===id); if(it){ it.c
 function selectAll() { items.forEach(i => i.checked=true); renderRows(); updateBatchBar(); }
 function updateBatchBar() {
   const sel = items.filter(i => i.checked);
-  document.getElementById('sel-info').textContent = `已選 ${sel.length} 個`;
+  document.getElementById('sel-info').textContent = `Selected ${sel.length} 個`;
   document.getElementById('batch-btn').disabled = sel.length === 0;
 }
 function clearAll() { items = []; render(); }
@@ -493,7 +493,6 @@ async function processBatch() {
   const pb = document.getElementById('prog-bar');
   const pl = document.getElementById('prog-label');
   const fmt = document.getElementById('out-fmt').value;
-  const zip = new JSZip();
 
   for (let i = 0; i < sel.length; i++) {
     const it = sel[i];
@@ -506,11 +505,7 @@ async function processBatch() {
       if (it.previewUrl) URL.revokeObjectURL(it.previewUrl);
       it.previewUrl = URL.createObjectURL(blob);
       it.processState = 'done';
-      // Subfolder = video filename without extension (same level as endcard)
-      const folderName = it.name.replace(/\.[^.]+$/, '');
-      const endcardName = outName(it.name, fmt);
-      zip.file(folderName + '/' + endcardName, blob);          // endcard
-      zip.file(folderName + '/' + it.name, it.file);           // original video
+      // endcard captured, will be zipped per-pair below
     } catch(e) {
       console.error(e);
       it.processState = 'error';
@@ -519,12 +514,56 @@ async function processBatch() {
     await new Promise(r => setTimeout(r, 30));
   }
 
+  // One ZIP with subfolders per video — endcard only
+  const succeeded = sel.filter(i => i.processState === 'done' && i.blob && i.blob.size > 0);
+  if (succeeded.length === 0) {
+    pl.textContent = 'No valid screenshots to zip.';
+    btn.disabled = false; updateBatchBar();
+    return;
+  }
   pb.style.width = '100%';
-  pl.textContent = '打包中…';
-  const content = await zip.generateAsync({ type: 'blob' });
-  saveAs(content, `endcards_${new Date().toISOString().slice(0,10)}.zip`);
-  const doneCount = sel.filter(i => i.processState === 'done').length;
-  pl.textContent = `完成！${doneCount} 個截圖已下載`;
+  pl.textContent = `Zipping ${succeeded.length} files...`;
+
+  try {
+    const zip = new JSZip();
+    for (const it of succeeded) {
+      // Sanitize folder name: remove characters that cause ZIP issues
+      const folderName = it.name.replace(/\.[^.]+$/, '').replace(/[\\/:*?"<>|]/g, '_');
+      const endcardName = outName(it.name, fmt);
+      // Convert blob to ArrayBuffer to avoid JSZip blob handling issues
+      const arrayBuf = await it.blob.arrayBuffer();
+      zip.file(folderName + '/' + endcardName, arrayBuf);
+      console.log('Added to ZIP:', folderName + '/' + endcardName, it.blob.size, 'bytes');
+    }
+
+    pl.textContent = 'Generating ZIP...';
+    const content = await zip.generateAsync({
+      type: 'blob',
+      compression: 'STORE', // no compression needed for JPEG
+    });
+
+    console.log('ZIP size:', content.size, 'bytes');
+    if (content.size < 100) {
+      alert('ZIP appears empty (' + content.size + ' bytes). Check console for details.');
+      pl.textContent = 'ZIP generation failed.';
+      btn.disabled = false; updateBatchBar();
+      return;
+    }
+
+    const zipUrl = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = zipUrl;
+    a.download = `endcards_${new Date().toISOString().slice(0,10)}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(zipUrl), 8000);
+    pl.textContent = `Done! ${succeeded.length} screenshots downloaded`;
+  } catch(zipErr) {
+    console.error('ZIP error:', zipErr);
+    pl.textContent = 'ZIP failed: ' + zipErr.message;
+    alert('ZIP generation failed: ' + zipErr.message);
+  }
   btn.disabled = false; updateBatchBar();
 }
 </script>

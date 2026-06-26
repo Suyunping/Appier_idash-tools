@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon-purple.svg">
 <link rel="apple-touch-icon" href="favicon-purple.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>iDASH 素材檢核工具</title>
+<title>iDASH Asset Checker</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -234,27 +234,27 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 <body>
 
 <div class="topbar">
-  <h1>iDASH 素材檢核</h1>
+  <h1>iDASH Asset Checker</h1>
   <span class="sub">Banner · Image (Support 2x)</span>
   <div class="topbar-right">
     <div class="sg">
-      <label>檔案大小上限</label>
+      <label>Max File Size</label>
       <input type="number" id="max-kb" value="900" min="10" max="10000">
       <span style="font-family:var(--mono);font-size:0.65rem;color:var(--muted)">KB</span>
     </div>
     <div class="sg">
-      <label>PNG 處理後格式</label>
+      <label>PNG Output Format</label>
       <select id="png-over">
-        <option value="jpeg">轉 JPEG（推薦）</option>
-        <option value="webp">轉 WebP</option>
+        <option value="jpeg">Convert to JPEG (Recommended)</option>
+        <option value="webp">Convert to WebP</option>
       </select>
     </div>
     <div class="sg">
-      <label>其他格式輸出</label>
+      <label>Other Format</label>
       <select id="out-fmt">
-        <option value="same">保持原格式</option>
-        <option value="image/jpeg">強制 JPEG</option>
-        <option value="image/webp">強制 WebP</option>
+        <option value="same">Keep Original</option>
+        <option value="image/jpeg">Force JPEG</option>
+        <option value="image/webp">Force WebP</option>
       </select>
     </div>
   </div>
@@ -263,97 +263,97 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 <div class="main">
   <div id="drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)" onclick="document.getElementById('fi').click()">
     <div class="dz-icon">⬆</div>
-    <div class="dz-t">點擊或拖曳圖片到這裡</div>
-    <div class="dz-s">支援 JPG、PNG、WebP · 可一次上傳多張</div>
+    <div class="dz-t">Click or drag images here</div>
+    <div class="dz-s">Supports JPG, PNG, WebP · Upload multiple at once</div>
     <input type="file" id="fi" multiple accept="image/*" style="display:none" onchange="addFiles(this.files)">
   </div>
 
   <div class="png-note" id="png-note">
-    <span>⚠ 偵測到 PNG 圖片需處理。PNG 無法直接壓縮，將自動轉成「<span id="png-note-action"></span>」後壓縮輸出（右上角可切換格式）。</span>
+    <span>⚠ ⚠ PNG files detected that need processing. PNG cannot be compressed directly — will be auto-converted to <span id="png-note-action"></span> for compression (format can be changed in the top right).</span>
   </div>
 
   <!-- Info Panel -->
   <div class="info-panel" id="info-panel">
     <div class="info-header" onclick="toggleInfo()">
-      <span>📋 下載規則說明</span>
+      <span>📋 Download Rules</span>
       <span class="info-toggle" id="info-toggle">▼</span>
     </div>
     <div class="info-body" id="info-body">
       <div class="info-section">
-        <div class="info-title">✅ ZIP 包含（可直接上傳 iDASH）</div>
-        <div class="info-row"><span class="i-tag t-ok">可直接上傳</span>原始檔案不動，直接打包進 ZIP</div>
-        <div class="info-row"><span class="i-tag t-resize">需 Resize</span>調整尺寸後的版本（.jpg）</div>
-        <div class="info-row"><span class="i-tag t-comp">需壓縮</span>PNG 壓縮轉換後的版本（.jpg）</div>
+        <div class="info-title">✅ Included in ZIP (ready for iDASH upload)</div>
+        <div class="info-row"><span class="i-tag t-ok">Ready to Upload</span>Original file unchanged, packed directly into ZIP</div>
+        <div class="info-row"><span class="i-tag t-resize">Needs Resize</span>Resized version (.jpg)</div>
+        <div class="info-row"><span class="i-tag t-comp">Needs Compression</span>PNG compressed and converted (.jpg)</div>
       </div>
       <div class="info-section">
-        <div class="info-title">❌ ZIP 不包含</div>
-        <div class="info-row"><span class="i-tag t-am">回報 AM</span>比例不符，Resize 會變形，需另行確認</div>
-        <div class="info-row"><span class="i-tag t-over">壓縮後超限</span>處理後仍超過 900KB，需手動壓縮</div>
+        <div class="info-title">❌ Not included in ZIP</div>
+        <div class="info-row"><span class="i-tag t-am">Report AM</span>Aspect ratio mismatch — resizing will distort, needs confirmation</div>
+        <div class="info-row"><span class="i-tag t-over">Over Limit</span>Still over 900KB after processing — manual compression needed</div>
       </div>
       <div class="info-section info-note">
-        <div class="info-title">⚠️ 注意：PNG → JPG 重複檔案問題</div>
-        <p>PNG 格式壓縮後會輸出為 <strong>.jpg</strong>（讓 iDASH 正確辨識格式）。</p>
-        <p>如果你將 ZIP 解壓縮到原始資料夾，資料夾中會同時存在：</p>
+        <div class="info-title">⚠️ Note: PNG → JPG Duplicate File Issue</div>
+        <p>Compressed PNG files are output as <strong>.jpg</strong> (so iDASH recognizes the format correctly).</p>
+        <p>If you extract the ZIP to your original folder, both files will exist:</p>
         <p style="margin:0.3rem 0 0.3rem 1rem;font-family:var(--mono);font-size:0.72rem;">
-          <span style="color:var(--muted2)">banner.png</span>（原始，需手動刪除）<br>
-          <span style="color:var(--green)">banner.jpg</span>（壓縮後，上傳用）
+          <span style="color:var(--muted2)">banner.png</span>(original — delete manually)<br>
+          <span style="color:var(--green)">banner.jpg</span>(compressed — use for upload)
         </p>
-        <p>ZIP 內會附上 <strong>「需刪除的原始PNG.txt」</strong>，列出所有需手動刪除的原始 PNG 清單。</p>
+        <p>The ZIP will include <strong>"PNG Files to Delete.txt"</strong> listing all original PNGs that should be deleted.</p>
       </div>
     </div>
   </div>
 
   <div class="summary">
     <div class="sc c-ok" id="s-ok" onclick="setFilter('ok')">
-      <div class="sc-n" id="n-ok">0</div><div class="sc-l">✅ 可直接上傳</div>
+      <div class="sc-n" id="n-ok">0</div><div class="sc-l">✅ Ready to Upload</div>
     </div>
     <div class="sc c-comp" id="s-comp" onclick="setFilter('comp')">
-      <div class="sc-n" id="n-comp">0</div><div class="sc-l">🔵 需壓縮</div>
+      <div class="sc-n" id="n-comp">0</div><div class="sc-l">🔵 Needs Compression</div>
     </div>
     <div class="sc c-resize" id="s-resize" onclick="setFilter('resize')">
-      <div class="sc-n" id="n-resize">0</div><div class="sc-l">⚠️ 需 Resize</div>
+      <div class="sc-n" id="n-resize">0</div><div class="sc-l">⚠️ Needs Resize</div>
     </div>
     <div class="sc c-am" id="s-am" onclick="setFilter('report')">
-      <div class="sc-n" id="n-am">0</div><div class="sc-l">❌ 回報 AM</div>
+      <div class="sc-n" id="n-am">0</div><div class="sc-l">❌ Report to AM</div>
     </div>
     <div class="sc" id="s-over" style="display:none;color:var(--red);grid-column:1/-1;background:rgba(255,92,92,0.07);border-color:rgba(255,92,92,0.3)">
-      <div class="sc-n" id="n-over">0</div><div class="sc-l">⛔ 壓縮後仍超限 — 已排除在 ZIP 外，建議手動壓縮或回報 AM</div>
+      <div class="sc-n" id="n-over">0</div><div class="sc-l">⛔ Over Limit — excluded from ZIP, try ezgif.com or report to AM</div>
     </div>
   </div>
 
   <div class="table-wrap" id="table-wrap">
     <div class="tbar">
-      <span class="tbar-title" id="tbar-count">尚未上傳圖片</span>
-      <button class="tbtn" onclick="toggleSelectAll()">全選可處理</button>
-      <button class="tbtn on" id="f-all" onclick="setFilter('all')">全部</button>
-      <button class="tbtn" id="f-act" onclick="setFilter('action')">需處理</button>
-      <button class="tbtn" id="f-rep" onclick="setFilter('report')">回報 AM</button>
-      <button class="tbtn" onclick="clearAll()" style="color:var(--red)">清除全部</button>
+      <span class="tbar-title" id="tbar-count">No images uploaded yet</span>
+      <button class="tbtn" onclick="toggleSelectAll()">Select Processable</button>
+      <button class="tbtn on" id="f-all" onclick="setFilter('all')">All</button>
+      <button class="tbtn" id="f-act" onclick="setFilter('action')">Needs Processing</button>
+      <button class="tbtn" id="f-rep" onclick="setFilter('report')">Report AM</button>
+      <button class="tbtn" onclick="clearAll()" style="color:var(--red)">Clear All</button>
     </div>
     <div class="col-hd">
       <span></span><span></span>
-      <span>檔名</span>
-      <span>原始尺寸</span>
-      <span>原始大小</span>
-      <span>狀態</span>
-      <span>目標尺寸</span>
-      <span>輸出結果</span>
-      <span>動作</span>
+      <span>Filename</span>
+      <span>Original Size</span>
+      <span>File Size</span>
+      <span>Status</span>
+      <span>Target Size</span>
+      <span>Output</span>
+      <span>Action</span>
     </div>
-    <div id="rows"><div class="empty">上傳圖片後會顯示分析結果</div></div>
+    <div id="rows"><div class="empty">Analysis results will appear after upload</div></div>
   </div>
 
   <div class="report-list" id="report-box">
-    <h3>⚠ 建議回報 AM 的素材（尺寸比例不符，Resize 將變形）</h3>
+    <h3>⚠ Assets recommended to Report to AM (aspect ratio mismatch — resizing will distort)</h3>
     <ul id="report-ul"></ul>
-    <button class="copy-rep-btn" onclick="copyReport()">複製清單</button>
+    <button class="copy-rep-btn" onclick="copyReport()">Copy List</button>
   </div>
 </div>
 
 <div class="bbar">
-  <span class="sel-info" id="sel-info">已選 0 張</span>
-  <button class="b-main" id="batch-btn" onclick="processBatch()" disabled>批量處理並下載 ZIP</button>
-  <button class="b-sec" onclick="clearProcessed()">清除已完成</button>
+  <span class="sel-info" id="sel-info">Selected 0  items</span>
+  <button class="b-main" id="batch-btn" onclick="processBatch()" disabled>Batch Process & Download ZIP</button>
+  <button class="b-sec" onclick="clearProcessed()">Clear Completed</button>
   <div class="prog-wrap" id="prog-wrap">
     <div class="prog-track"><div class="prog-bar" id="prog-bar"></div></div>
     <div class="prog-label" id="prog-label"></div>
@@ -403,25 +403,25 @@ function analyze(w, h, kb, mime, f) {
   const specialKey = `${w}x${h}`;
   if (SPECIAL[specialKey]) {
     const t = SPECIAL[specialKey];
-    return { status:'special', targets:[t], selectedTarget:t, badge:'b-special', badgeText:'特殊 Resize', msg:`→ ${t[0]}×${t[1]}（iDASH 規定）` };
+    return { status:'special', targets:[t], selectedTarget:t, badge:'b-special', badgeText:'Special Resize', msg:`→ ${t[0]}×${t[1]}（per iDASH spec）` };
   }
   const exact = SIZES.find(([sw,sh]) => sw===w && sh===h);
   if (exact) {
-    if (f.size < maxBytes) return { status:'ok', targets:[], selectedTarget:null, badge:'b-ok', badgeText:'✅ 可上傳', msg:'尺寸符合，大小OK' };
-    return { status:'comp', targets:[[w,h]], selectedTarget:[w,h], badge:'b-comp', badgeText:'🔵 需壓縮', msg:`${kb.toFixed(0)}KB 超過 ${maxKB}KB`, isPng: mime==='image/png' };
+    if (f.size < maxBytes) return { status:'ok', targets:[], selectedTarget:null, badge:'b-ok', badgeText:'✅ Ready', msg:'Size and dimensions OK' };
+    return { status:'comp', targets:[[w,h]], selectedTarget:[w,h], badge:'b-comp', badgeText:'🔵 Needs Compression', msg:`${kb.toFixed(0)}KB exceeds ${maxKB}KB`, isPng: mime==='image/png' };
   }
   const twoX = SIZES.find(([sw,sh]) => sw*2===w && sh*2===h);
   if (twoX) {
-    if (f.size < maxBytes) return { status:'ok', targets:[], selectedTarget:null, badge:'b-ok2', badgeText:'✅ 可上傳 (2x)', msg:`對應 ${twoX[0]}×${twoX[1]}` };
-    return { status:'comp', targets:[[w,h]], selectedTarget:[w,h], badge:'b-comp', badgeText:'🔵 需壓縮 (2x)', msg:`${kb.toFixed(0)}KB 超過 ${maxKB}KB`, isPng: mime==='image/png' };
+    if (f.size < maxBytes) return { status:'ok', targets:[], selectedTarget:null, badge:'b-ok2', badgeText:'✅ Ready (2x)', msg:`corresponding to ${twoX[0]}×${twoX[1]}` };
+    return { status:'comp', targets:[[w,h]], selectedTarget:[w,h], badge:'b-comp', badgeText:'🔵 Needs Compression (2x)', msg:`${kb.toFixed(0)}KB exceeds ${maxKB}KB`, isPng: mime==='image/png' };
   }
   const eps = 0.015;
   const arMatches = SIZES.filter(([sw,sh]) => Math.abs(w/h - sw/sh) < eps);
   if (arMatches.length > 0) {
     arMatches.sort((a,b) => Math.abs(a[0]*a[1]-w*h)-Math.abs(b[0]*b[1]-w*h));
-    return { status:'resize', targets:arMatches, selectedTarget:arMatches[0], badge:'b-resize', badgeText:'⚠️ 需 Resize', msg:`${arMatches.length} 個可選尺寸` };
+    return { status:'resize', targets:arMatches, selectedTarget:arMatches[0], badge:'b-resize', badgeText:'⚠️ Needs Resize', msg:`${arMatches.length}  available sizes` };
   }
-  return { status:'report', targets:[], selectedTarget:null, badge:'b-report', badgeText:'❌ 回報 AM', msg:`比例 ${(w/h).toFixed(2)} 無對應尺寸` };
+  return { status:'report', targets:[], selectedTarget:null, badge:'b-report', badgeText:'❌ Report to AM', msg:`Ratio ${(w/h).toFixed(2)} — no matching size` };
 }
 
 // Re-analyze when maxKB changes
@@ -451,7 +451,7 @@ function checkPngWarning() {
   if (pngOver.length) {
     note.style.display = 'flex';
     const mode = document.getElementById('png-over').value;
-    const modeText = mode==='jpeg'?'自動轉 JPEG 壓縮': mode==='webp'?'自動轉 WebP 壓縮':'不處理（保持原檔）';
+    const modeText = mode==='jpeg'?'Auto-convert to JPEG': mode==='webp'?'Auto-convert to WebP':'Skip (keep as PNG)';
     document.getElementById('png-note-action').textContent = modeText;
   } else {
     note.style.display = 'none';
@@ -469,7 +469,7 @@ function updateSummary() {
   const _overCard = document.getElementById('s-over');
   if (_overEl) _overEl.textContent = _overCnt;
   if (_overCard) _overCard.style.display = _overCnt > 0 ? 'block' : 'none';
-  document.getElementById('tbar-count').textContent = items.length ? `共 ${items.length} 張` : '尚未上傳圖片';
+  document.getElementById('tbar-count').textContent = items.length ? `Total ${items.length}  items` : 'No images uploaded yet';
 }
 
 function rowVisible(it) {
@@ -484,7 +484,7 @@ function rowVisible(it) {
 
 function renderRows() {
   const c = document.getElementById('rows');
-  if (!items.length) { c.innerHTML='<div class="empty">上傳圖片後會顯示分析結果</div>'; return; }
+  if (!items.length) { c.innerHTML='<div class="empty">Analysis results will appear after upload</div>'; return; }
   c.innerHTML = items.map(it => buildRow(it)).join('');
 }
 
@@ -519,17 +519,17 @@ function buildRow(it) {
   // Action button
   let actHtml;
   if (it.status==='report') {
-    actHtml = `<button class="act-btn" disabled>回報 AM</button>`;
+    actHtml = `<button class="act-btn" disabled>Report AM</button>`;
   } else if (it.processState==='over-limit') {
-    actHtml = `<button class="act-btn err" style="font-size:0.55rem" disabled title="壓縮後仍超限，已排除在ZIP外">⛔ 超限</button>`;
+    actHtml = `<button class="act-btn err" style="font-size:0.55rem" disabled title="Over limit after compression — excluded from ZIP">⛔ Over Limit</button>`;
   } else if (it.processState==='done') {
-    actHtml = `<button class="act-btn done" onclick="downloadOne(${it.id})">↓ 下載</button>`;
+    actHtml = `<button class="act-btn done" onclick="downloadOne(${it.id})">↓ Download</button>`;
   } else if (it.processState==='processing') {
-    actHtml = `<button class="act-btn" disabled>處理中…</button>`;
+    actHtml = `<button class="act-btn" disabled>Processing...</button>`;
   } else if (it.status==='ok') {
-    actHtml = `<button class="act-btn done" onclick="downloadOriginal(${it.id})">↓ 原檔</button>`;
+    actHtml = `<button class="act-btn done" onclick="downloadOriginal(${it.id})">↓ Original</button>`;
   } else {
-    actHtml = `<button class="act-btn" onclick="processOne(${it.id})">處理</button>`;
+    actHtml = `<button class="act-btn" onclick="processOne(${it.id})">Process</button>`;
   }
 
   return `<div class="row${vis}${repClass}" id="row-${it.id}">
@@ -557,7 +557,7 @@ function renderReportBox() {
   if (!reps.length) { box.style.display='none'; return; }
   box.style.display='block';
   document.getElementById('report-ul').innerHTML = reps.map(i =>
-    `<li>• ${i.name}（${i.w}×${i.h}，${fmt_kb(i.kb)}）— 比例 ${(i.w/i.h).toFixed(2)}，無對應允許尺寸</li>`
+    `<li>• ${i.name}（${i.w}×${i.h}，${fmt_kb(i.kb)}）— Ratio ${(i.w/i.h).toFixed(2)}，no matching allowed size</li>`
   ).join('');
 }
 
@@ -587,15 +587,15 @@ function toggleSelectAll() {
 }
 function updateBatchBar() {
   const sel = items.filter(i=>i.checked&&i.status!=='report'&&i.status!=='ok');
-  document.getElementById('sel-info').textContent=`已選 ${sel.length} 張`;
+  document.getElementById('sel-info').textContent=`Selected ${sel.length}  items`;
   document.getElementById('batch-btn').disabled = sel.length===0;
 }
 function clearAll() { items.forEach(i=>URL.revokeObjectURL(i.thumbUrl)); items=[]; currentFilter='all'; render(); }
 function clearProcessed() { items=items.filter(i=>i.processState!=='done'); render(); }
 function copyReport() {
   const reps=items.filter(i=>i.status==='report');
-  const text='以下素材尺寸比例不符 iDASH 規定，Resize 將變形，請確認是否可略過：\n'+reps.map(i=>`• ${i.name}（原始尺寸：${i.w}×${i.h}）`).join('\n');
-  navigator.clipboard.writeText(text).then(()=>alert('已複製到剪貼簿！'));
+  const text='The following assets have aspect ratios that do not match iDASH specs — resizing will distort. Please confirm if they can be skipped:\n'+reps.map(i=>`• ${i.name}（Original Size：${i.w}×${i.h}）`).join('\n');
+  navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard!'));
 }
 
 // ── Processing ─────────────────────────────────────────
@@ -679,9 +679,9 @@ function updateRowCells(it) {
   // Action cell
   const actCell = document.getElementById('act-'+it.id);
   if (actCell) {
-    if (it.processState==='done') actCell.innerHTML=`<button class="act-btn done" onclick="downloadOne(${it.id})">↓ 下載</button>`;
-    else if (it.processState==='processing') actCell.innerHTML=`<button class="act-btn" disabled>處理中…</button>`;
-    else if (it.processState==='error') actCell.innerHTML=`<button class="act-btn err" onclick="processOne(${it.id})">重試</button>`;
+    if (it.processState==='done') actCell.innerHTML=`<button class="act-btn done" onclick="downloadOne(${it.id})">↓ Download</button>`;
+    else if (it.processState==='processing') actCell.innerHTML=`<button class="act-btn" disabled>Processing...</button>`;
+    else if (it.processState==='error') actCell.innerHTML=`<button class="act-btn err" onclick="processOne(${it.id})">Retry</button>`;
   }
   // Output info cell
   const outCell = document.getElementById('out-'+it.id);
@@ -691,7 +691,7 @@ function updateRowCells(it) {
       const icon = it.outKB<=maxKB?'✓':'⚠';
       outCell.innerHTML=`<div class="out-info"><span class="out-size ${sizeClass}">${icon} ${fmt_kb(it.outKB)}</span><span class="out-dims">${it.outW}×${it.outH}</span></div>`;
     } else if (it.processState==='processing') {
-      outCell.innerHTML=`<span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">處理中…</span>`;
+      outCell.innerHTML=`<span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">Processing...</span>`;
     } else {
       outCell.innerHTML=`<span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">—</span>`;
     }
@@ -743,7 +743,7 @@ async function processBatch() {
     pl.textContent=`${i+1}/${sel.length} — ${it.name}`;
     it.processState='processing'; updateRowCells(it);
     if (it.status==='ok') {
-      // 可直接上傳：原始檔不放進 ZIP（使用者資料夾裡已有原始檔，放了會重複）
+      // 可直接上傳：original not added to ZIP (already in your folder — would create duplicates)
       it.processState='done';
     } else {
       const result=await processItem(it);
@@ -769,20 +769,21 @@ async function processBatch() {
 
   if(deleteList.length > 0){
     const today = new Date().toLocaleDateString('zh-TW');
-    const txt = '【需手動刪除的原始 PNG 檔案】\n'
-      + '以下 PNG 檔案已壓縮轉換為 JPG，請從原始資料夾中手動刪除，避免重複：\n\n'
+    const txt = '[Original PNG Files to Delete]\n'
+      + 'The following PNG files have been compressed and converted to JPG.
+Please delete them from your original folder to avoid duplicates:\n\n'
       + deleteList.map(n => '  ✕  ' + n).join('\n')
-      + '\n\n產生日期：' + today
-      + '\n（刪除後資料夾只保留 .jpg 版本，即可直接上傳 iDASH）';
-    zip.file('⚠ 需刪除的原始PNG.txt', txt);
+      + '\n\nGenerated: ' + today
+      + '\n(After deleting, only .jpg versions remain — ready to upload to iDASH)';
+    zip.file('⚠ PNG Files to Delete.txt', txt);
   }
 
   pb.style.width='100%';
-  pl.textContent='打包中…';
+  pl.textContent='Zipping...';
   const content=await zip.generateAsync({type:'blob'});
   saveAs(content,`idash_assets_${new Date().toISOString().slice(0,10)}.zip`);
   const doneCount=sel.filter(i=>i.processState==='done').length;
-  pl.textContent=`完成！${doneCount} 張已下載`;
+  pl.textContent=`Done! ${doneCount}  files downloaded`;
   btn.disabled=false; updateBatchBar();
 }
 </script>

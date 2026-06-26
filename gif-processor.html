@@ -5,7 +5,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon-blue.svg">
 <link rel="apple-touch-icon" href="favicon-blue.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GIF 批次處理工具</title>
+<title>GIF Batch Processor工具</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -131,16 +131,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 <body>
 
 <div class="topbar">
-  <h1>GIF 批次處理</h1>
-  <span class="sub">Loop × 5 · 壓縮 &lt; 目標大小</span>
+  <h1>GIF Batch Processor</h1>
+  <span class="sub">Loop × 5 · Compress &lt; Target Size</span>
   <div class="topbar-right">
     <div class="sg">
-      <label>Loop 次數</label>
+      <label>Loop Count</label>
       <input type="number" id="loop-count" value="5" min="0" max="65535">
-      <span>次</span>
+      <span> times</span>
     </div>
     <div class="sg">
-      <label>大小上限</label>
+      <label>Size Limit</label>
       <input type="number" id="max-kb" value="300" min="10" max="5000">
       <span>KB</span>
     </div>
@@ -148,41 +148,41 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 </div>
 
 <div class="main">
-  <div id="init-status">⏳ 正在載入 GIF 編碼器…</div>
+  <div id="init-status">⏳ Loading GIF encoder...</div>
 
   <div id="drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave()" ondrop="onDrop(event)" onclick="document.getElementById('fi').click()">
     <div class="icon">🎞</div>
-    <div class="t">點擊或拖曳 GIF 到這裡</div>
-    <div class="s">可一次上傳多張 · 僅接受 .gif 格式</div>
+    <div class="t">Click or drag GIFs here</div>
+    <div class="s">Upload multiple at once · .gif files only</div>
     <input type="file" id="fi" multiple accept=".gif,image/gif" style="display:none" onchange="addFiles(this.files)">
   </div>
 
   <div class="summary">
-    <div class="sc c-ok"><div class="sc-n" id="n-loop">0</div><div class="sc-l">🔁 只改 Loop</div></div>
-    <div class="sc c-comp"><div class="sc-n" id="n-comp">0</div><div class="sc-l">📦 需壓縮</div></div>
-    <div class="sc c-done"><div class="sc-n" id="n-done">0</div><div class="sc-l">✅ 已完成</div></div>
-    <div class="sc c-err"><div class="sc-n" id="n-err">0</div><div class="sc-l">❌ 失敗</div></div>
+    <div class="sc c-ok"><div class="sc-n" id="n-loop">0</div><div class="sc-l">🔁 Loop Only</div></div>
+    <div class="sc c-comp"><div class="sc-n" id="n-comp">0</div><div class="sc-l">📦 Needs Compression</div></div>
+    <div class="sc c-done"><div class="sc-n" id="n-done">0</div><div class="sc-l">✅ Done</div></div>
+    <div class="sc c-err"><div class="sc-n" id="n-err">0</div><div class="sc-l">❌ Failed</div></div>
   </div>
 
   <div class="table-wrap">
     <div class="tbar">
-      <span class="tbar-title" id="tbar-count">尚未上傳 GIF</span>
-      <button class="tbtn" onclick="selectAll()">全選</button>
-      <button class="tbtn" onclick="clearAll()" style="color:var(--red)">清除全部</button>
+      <span class="tbar-title" id="tbar-count">No GIFs uploaded yet</span>
+      <button class="tbtn" onclick="selectAll()">Select All</button>
+      <button class="tbtn" onclick="clearAll()" style="color:var(--red)">Clear All</button>
     </div>
     <div class="col-hd">
       <span></span><span></span>
-      <span>檔名</span><span>尺寸</span><span>原始大小</span>
-      <span>處理方式</span><span>輸出結果</span><span>動作</span>
+      <span>Filename</span><span>Size</span><span>Original Size</span>
+      <span>Method</span><span>Output</span><span>Action</span>
     </div>
-    <div id="rows"><div class="empty">上傳 GIF 後顯示分析結果</div></div>
+    <div id="rows"><div class="empty">Analysis results will appear after upload</div></div>
   </div>
 </div>
 
 <div class="bbar">
-  <span class="sel-info" id="sel-info">已選 0 張</span>
-  <button class="b-main" id="batch-btn" onclick="processBatch()" disabled>批量處理並下載 ZIP</button>
-  <button class="b-sec" onclick="clearDone()">清除已完成</button>
+  <span class="sel-info" id="sel-info">Selected 0 張</span>
+  <button class="b-main" id="batch-btn" onclick="processBatch()" disabled>Batch Process & Download ZIP</button>
+  <button class="b-sec" onclick="clearDone()">Clear Completed</button>
   <div class="prog-wrap" id="prog-wrap">
     <div class="prog-track"><div class="prog-bar" id="prog-bar"></div></div>
     <div class="prog-label" id="prog-label"></div>
@@ -394,19 +394,19 @@ function updateSummary(){
   document.getElementById('n-comp').textContent=items.filter(i=>i.needsCompress).length;
   document.getElementById('n-done').textContent=items.filter(i=>i.processState==='done').length;
   document.getElementById('n-err').textContent=items.filter(i=>i.processState==='error'||i.processState==='over-limit').length;
-  document.getElementById('tbar-count').textContent=items.length?`共 ${items.length} 個 GIF`:'尚未上傳 GIF';
+  document.getElementById('tbar-count').textContent=items.length?`Total ${items.length}  GIFs`:'No GIFs uploaded yet';
 }
 
 function renderRows(){
   const c=document.getElementById('rows');
-  if(!items.length){c.innerHTML='<div class="empty">上傳 GIF 後顯示分析結果</div>';return;}
+  if(!items.length){c.innerHTML='<div class="empty">Analysis results will appear after upload</div>';return;}
   c.innerHTML=items.map(buildRow).join('');
 }
 
 function buildRow(it){
   const badge=it.needsCompress
-    ?`<span class="badge b-comp">📦 壓縮 + Loop</span>`
-    :`<span class="badge b-loop">🔁 只改 Loop</span>`;
+    ?`<span class="badge b-comp">📦 Compress + Loop</span>`
+    :`<span class="badge b-loop">🔁 Loop Only</span>`;
   let outHtml='<span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">—</span>';
   if(it.processState==='done'&&it.outKB!=null){
     const m=getMaxKB();
@@ -414,13 +414,13 @@ function buildRow(it){
     const icon=it.outKB<=m?'✓':'⚠';
     outHtml=`<div class="out-cell"><span class="out-kb ${cls}">${icon} ${fmtKB(it.outKB)}</span><span style="font-family:var(--mono);font-size:0.58rem;color:var(--muted)">${it.outW}×${it.outH}</span></div>`;
   } else if(it.processState==='processing'){
-    outHtml=`<span style="font-family:var(--mono);font-size:0.62rem;color:var(--amber)">處理中…</span>`;
+    outHtml=`<span style="font-family:var(--mono);font-size:0.62rem;color:var(--amber)">Processing...</span>`;
   }
   let actHtml;
-  if(it.processState==='done') actHtml=`<button class="act-btn done" onclick="downloadOne(${it.id})">↓ 下載</button>`;
-  else if(it.processState==='processing') actHtml=`<button class="act-btn" disabled>處理中…</button>`;
-  else if(it.processState==='over-limit') actHtml=`<button class="act-btn err" onclick="processOne(${it.id})" title="壓縮後仍超限，無法加入ZIP，請用 ezgif.com 處理或回報 AM">❌ 超限，重試</button>`;
-  else if(it.processState==='error') actHtml=`<button class="act-btn err" onclick="processOne(${it.id})">重試</button>`;
+  if(it.processState==='done') actHtml=`<button class="act-btn done" onclick="downloadOne(${it.id})">↓ Download</button>`;
+  else if(it.processState==='processing') actHtml=`<button class="act-btn" disabled>Processing...</button>`;
+  else if(it.processState==='over-limit') actHtml=`<button class="act-btn err" onclick="processOne(${it.id})" title="壓縮後仍超限，無法加入ZIP，請用 ezgif.com 處理或回報 AM">❌ 超限，Retry</button>`;
+  else if(it.processState==='error') actHtml=`<button class="act-btn err" onclick="processOne(${it.id})">Retry</button>`;
   else actHtml=`<button class="act-btn" onclick="processOne(${it.id})">處理</button>`;
 
   const rowStyle = it.processState==='over-limit' ? ' style="background:rgba(255,92,92,0.06);border-left:3px solid var(--red);"' : '';
@@ -440,10 +440,10 @@ function updateRowCells(it){
   const m=getMaxKB();
   const actEl=document.getElementById('act-'+it.id);
   if(actEl){
-    if(it.processState==='done') actEl.innerHTML=`<button class="act-btn done" onclick="downloadOne(${it.id})">↓ 下載</button>`;
-    else if(it.processState==='processing') actEl.innerHTML=`<button class="act-btn" disabled>處理中…</button>`;
-    else if(it.processState==='over-limit') actEl.innerHTML=`<button class="act-btn err" onclick="processOne(${it.id})" title="壓縮後仍超限，無法加入ZIP，請用 ezgif.com 處理或回報 AM">❌ 超限，重試</button>`;
-    else if(it.processState==='error') actEl.innerHTML=`<button class="act-btn err" onclick="processOne(${it.id})">重試</button>`;
+    if(it.processState==='done') actEl.innerHTML=`<button class="act-btn done" onclick="downloadOne(${it.id})">↓ Download</button>`;
+    else if(it.processState==='processing') actEl.innerHTML=`<button class="act-btn" disabled>Processing...</button>`;
+    else if(it.processState==='over-limit') actEl.innerHTML=`<button class="act-btn err" onclick="processOne(${it.id})" title="壓縮後仍超限，無法加入ZIP，請用 ezgif.com 處理或回報 AM">❌ 超限，Retry</button>`;
+    else if(it.processState==='error') actEl.innerHTML=`<button class="act-btn err" onclick="processOne(${it.id})">Retry</button>`;
     else actEl.innerHTML=`<button class="act-btn" onclick="processOne(${it.id})">處理</button>`;
   }
   const outEl=document.getElementById('out-'+it.id);
@@ -453,7 +453,7 @@ function updateRowCells(it){
       const icon=it.outKB<=m?'✓':'⚠';
       outEl.innerHTML=`<div class="out-cell"><span class="out-kb ${cls}">${icon} ${fmtKB(it.outKB)}</span><span style="font-family:var(--mono);font-size:0.58rem;color:var(--muted)">${it.outW}×${it.outH}</span></div>`;
     } else if(it.processState==='processing'){
-      outEl.innerHTML=`<span style="font-family:var(--mono);font-size:0.62rem;color:var(--amber)">處理中…</span>`;
+      outEl.innerHTML=`<span style="font-family:var(--mono);font-size:0.62rem;color:var(--amber)">Processing...</span>`;
     } else {
       outEl.innerHTML=`<span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">—</span>`;
     }
@@ -465,7 +465,7 @@ function setCheck(id,val){const it=items.find(i=>i.id===id);if(it){it.checked=va
 function selectAll(){items.forEach(i=>i.checked=true);renderRows();updateBatchBar();}
 function updateBatchBar(){
   const sel=items.filter(i=>i.checked);
-  document.getElementById('sel-info').textContent=`已選 ${sel.length} 張`;
+  document.getElementById('sel-info').textContent=`Selected ${sel.length} 張`;
   document.getElementById('batch-btn').disabled=sel.length===0;
 }
 function clearAll(){items.forEach(i=>URL.revokeObjectURL(i.thumbUrl));items=[];render();}
@@ -632,10 +632,10 @@ async function processBatch(){
     await new Promise(r=>setTimeout(r,30));
   }
 
-  pb.style.width='100%'; pl.textContent='打包中…';
+  pb.style.width='100%'; pl.textContent='Zipping...';
   const content=await zip.generateAsync({type:'blob'});
   saveAs(content,`gif_processed_${new Date().toISOString().slice(0,10)}.zip`);
-  pl.textContent=`完成！${sel.filter(i=>i.processState==='done').length} 個 GIF 已下載`;
+  pl.textContent=`Done! ${sel.filter(i=>i.processState==='done').length}  GIFs downloaded`;
   btn.disabled=false; updateBatchBar();
 }
 </script>
