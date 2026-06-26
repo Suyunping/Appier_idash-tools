@@ -514,56 +514,21 @@ async function processBatch() {
     await new Promise(r => setTimeout(r, 30));
   }
 
-  // One ZIP with subfolders per video — endcard only
-  const succeeded = sel.filter(i => i.processState === 'done' && i.blob && i.blob.size > 0);
-  if (succeeded.length === 0) {
-    pl.textContent = 'No valid screenshots to zip.';
-    btn.disabled = false; updateBatchBar();
-    return;
-  }
+  // One ZIP, one subfolder per video, containing video + endcard at same level
+  const succeeded = sel.filter(i => i.processState === 'done');
   pb.style.width = '100%';
-  pl.textContent = `Zipping ${succeeded.length} files...`;
-
-  try {
-    const zip = new JSZip();
-    for (const it of succeeded) {
-      // Sanitize folder name: remove characters that cause ZIP issues
-      const folderName = it.name.replace(/\.[^.]+$/, '').replace(/[\\/:*?"<>|]/g, '_');
-      const endcardName = outName(it.name, fmt);
-      // Convert blob to ArrayBuffer to avoid JSZip blob handling issues
-      const arrayBuf = await it.blob.arrayBuffer();
-      zip.file(folderName + '/' + endcardName, arrayBuf);
-      console.log('Added to ZIP:', folderName + '/' + endcardName, it.blob.size, 'bytes');
-    }
-
-    pl.textContent = 'Generating ZIP...';
-    const content = await zip.generateAsync({
-      type: 'blob',
-      compression: 'STORE', // no compression needed for JPEG
-    });
-
-    console.log('ZIP size:', content.size, 'bytes');
-    if (content.size < 100) {
-      alert('ZIP appears empty (' + content.size + ' bytes). Check console for details.');
-      pl.textContent = 'ZIP generation failed.';
-      btn.disabled = false; updateBatchBar();
-      return;
-    }
-
-    const zipUrl = URL.createObjectURL(content);
-    const a = document.createElement('a');
-    a.href = zipUrl;
-    a.download = `endcards_${new Date().toISOString().slice(0,10)}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(zipUrl), 8000);
-    pl.textContent = `Done! ${succeeded.length} screenshots downloaded`;
-  } catch(zipErr) {
-    console.error('ZIP error:', zipErr);
-    pl.textContent = 'ZIP failed: ' + zipErr.message;
-    alert('ZIP generation failed: ' + zipErr.message);
+  pl.textContent = 'Zipping...';
+  const zip = new JSZip();
+  for (const it of succeeded) {
+    const folderName = it.name.replace(/\.[^.]+$/, '');
+    const endcardName = outName(it.name, fmt);
+    zip.file(folderName + '/' + endcardName, it.blob);  // endcard screenshot
+    zip.file(folderName + '/' + it.name, it.file);       // original video
   }
+  const content = await zip.generateAsync({ type: 'blob' });
+  saveAs(content, `endcards_${new Date().toISOString().slice(0,10)}.zip`);
+  const doneCount = succeeded.length;
+  pl.textContent = `Done! ${doneCount} screenshots downloaded`;
   btn.disabled = false; updateBatchBar();
 }
 </script>
