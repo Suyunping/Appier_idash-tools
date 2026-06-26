@@ -269,7 +269,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
   </div>
 
   <div class="png-note" id="png-note">
-    <span>⚠ ⚠ PNG files detected that need processing. PNG cannot be compressed directly — will be auto-converted to <span id="png-note-action"></span> for compression (format can be changed in the top right).</span>
+    <span>⚠ PNG files detected that need processing. PNG cannot be compressed directly — will be auto-converted to <span id="png-note-action"></span> for compression (format can be changed in the top right).</span>
   </div>
 
   <!-- Info Panel -->
@@ -770,8 +770,7 @@ async function processBatch() {
   if(deleteList.length > 0){
     const today = new Date().toLocaleDateString('zh-TW');
     const txt = '[Original PNG Files to Delete]\n'
-      + 'The following PNG files have been compressed and converted to JPG.
-Please delete them from your original folder to avoid duplicates:\n\n'
+      + 'The following PNG files have been compressed and converted to JPG.\nPlease delete them from your original folder to avoid duplicates:\n\n'
       + deleteList.map(n => '  ✕  ' + n).join('\n')
       + '\n\nGenerated: ' + today
       + '\n(After deleting, only .jpg versions remain — ready to upload to iDASH)';
